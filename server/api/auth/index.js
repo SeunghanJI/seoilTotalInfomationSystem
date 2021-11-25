@@ -41,7 +41,7 @@ const updateSession = ({ id, password }) => {
 const checkLogin = ({ id, password }) => {
     return new Promise((resolve, reject) => {
         db.get(`select * from account
-                where id = ${id}
+                where id = "${id}"
                 and password = "${password}"`,
             [], (err, row) => {
                 if (err) {
@@ -56,13 +56,16 @@ const checkLogin = ({ id, password }) => {
 };
 
 app.post('/login', (req, res) => {
-    const body = req.body;
+    const userInfo = {
+        id: parseInt(req.body.id),
+        password: req.body.password
+    };
 
-    if (!utils.checkRequiredProperties(['id', 'password'], body)) {
-        return res.status(400).json(ERROR_CODE[400]);
+    if (!utils.checkRequiredProperties(['id', 'password'], userInfo)) {
+        return res.status(400).json(ERROR_CODE[400].message);
     }
 
-    checkLogin(body)
+    checkLogin(userInfo)
         .then(userInfo => {
             if (!userInfo.session) {
                 return updateSession(userInfo);
