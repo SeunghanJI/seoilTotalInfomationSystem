@@ -25,7 +25,7 @@ const createSession = () => {
 const updateSession = ({ id, password }) => {
     return new Promise((resolve, reject) => {
         const session = createSession();
-        db.get(`update account
+        db.run(`update account
                 set session = "${session}"
                 where id = "${id}"
                 and password = "${password}"`,
@@ -41,13 +41,13 @@ const updateSession = ({ id, password }) => {
 const checkLogin = ({ id, password }) => {
     return new Promise((resolve, reject) => {
         db.get(`select * from account
-                where id = "${id}"
+                where id = ${id}
                 and password = "${password}"`,
             [], (err, row) => {
                 if (err) {
                     reject(ERROR_CODE[500]);
                 }
-                if (!Object.keys(row).length) {
+                if (!row) {
                     reject({ code: 400, message: '아이디나 비밀번호가 틀렸습니다.' });
                 }
                 resolve(row);
@@ -67,7 +67,6 @@ app.post('/login', (req, res) => {
             if (!userInfo.session) {
                 return updateSession(userInfo);
             }
-
             return userInfo.session;
         })
         .then(session => {
