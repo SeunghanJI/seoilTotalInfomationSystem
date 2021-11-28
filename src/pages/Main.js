@@ -1,24 +1,54 @@
 import React from 'react';
 
-import { Card } from 'antd';
+import { Card, Button } from 'antd';
 
 import LecturesList from '../components/main/LecturesList';
+import LoginForm from '../components/LoginForm';
+import Profile from '../components/Profile';
+import LechuresCalendar from '../components/main/LechuresCalendar';
 
-const Main = () => {
+const Main = ({ isLogin, loginCallBack }) => {
   return (
     <div>
-      <img src={`${process.env.PUBLIC_URL}/banner.png`} alt="banner" />
-      <div style={{ display: 'flex', width: '100%' }}>
+      <img
+        src={`${process.env.PUBLIC_URL}/banner.png`}
+        alt="banner"
+        style={{ width: '100%', marginTop: '32px' }}
+      />
+      <div
+        style={{
+          display: 'flex',
+          width: '100%',
+          marginTop: '32px',
+          gap: '2vw',
+        }}
+      >
         <Card>
           <LecturesList></LecturesList>
         </Card>
-        <Card>
-          <p>학사일정 달력</p>
+        <Card style={{ flex: '1' }}>
+          <LechuresCalendar></LechuresCalendar>
         </Card>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Card>로그인 폼</Card>
-          <Card>강의평가</Card>
-          <Card>휴학신청</Card>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', rowGap: '2vh' }}
+        >
+          <Card>
+            {isLogin ? (
+              <Profile></Profile>
+            ) : (
+              <LoginForm loginCallBack={loginCallBack}></LoginForm>
+            )}
+          </Card>
+          <Card>
+            <Button type="link" block>
+              강의평가
+            </Button>
+          </Card>
+          <Card>
+            <Button type="link" block>
+              휴학신청
+            </Button>
+          </Card>
         </div>
       </div>
     </div>
