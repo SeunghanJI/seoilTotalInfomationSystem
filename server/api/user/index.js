@@ -10,6 +10,13 @@ const db = new sqlite3.Database('db/main.db', (err) => {
     };
 });
 
+const checkId = id => {
+    if (100000000 < id && id < 999999999)
+        return 'student';
+    else
+        return 'professor';
+}
+
 const getId = session => {
     return new Promise((resolve, reject) => {
         db.get(`select id from account
@@ -19,6 +26,24 @@ const getId = session => {
                     reject(ERROR_CODE[500]);
                 }
                 if (!Object.keys(row).length) {
+                    reject(ERROR_CODE[400])
+                }
+                resolve(row);
+            });
+    });
+};
+
+const getSimpleUserInfo = (tableName, id) => {
+    return new Promise((resolve, reject) => {
+        db.get(`select id,${tableName}.name as name,dept.name as deptName from ${tableName}
+                inner join dept
+                on ${tableName}.department = dept.code
+                where id = ${id}`,
+            (err, row) => {
+                if (err) {
+                    reject(ERROR_CODE[500]);
+                }
+                if (!row) {
                     reject(ERROR_CODE[400])
                 }
                 resolve(row);
@@ -63,6 +88,22 @@ const generateStudentAccount = (accountInfo) => {
             });
     });
 };
+
+app.get('/simple', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+
+    getId(session)
+        .then(user => {
+            return getSimpleUserInfo(checkId(user.id), user.id);
+        })
+        .then(userInfo => {
+            res.status(200).json(userInfo);
+        })
+        .catch(failed => {
+            res.status(failed.code).json(failed.message);
+        })
+});
 
 app.post('/student', (req, res) => {
     const body = req.body;
