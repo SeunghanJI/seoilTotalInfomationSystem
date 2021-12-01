@@ -23,9 +23,11 @@ const Main = ({ isLogin, loginCallBack }) => {
           gap: '2vw',
         }}
       >
-        <Card>
-          <LecturesList></LecturesList>
-        </Card>
+        {isLogin && (
+          <Card>
+            <LecturesList></LecturesList>
+          </Card>
+        )}
         <Card style={{ flex: '1' }}>
           <LechuresCalendar></LechuresCalendar>
         </Card>
