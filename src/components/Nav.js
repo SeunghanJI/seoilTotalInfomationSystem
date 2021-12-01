@@ -1,10 +1,23 @@
 import React from 'react';
 import { Menu } from 'antd';
 
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const Nav = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const { pathname } = location;
+
+  const selectKey = (() => {
+    if (pathname.includes('information')) {
+      return '학사정보';
+    } else if (pathname.includes('profile')) {
+      return '내 정보 관리';
+    } else {
+      return '';
+    }
+  })();
 
   const openNewWindow = (type) => {
     const URL = (() => {
@@ -54,21 +67,41 @@ const Nav = () => {
         />
         서일대학교 종합정보 시스템
       </div>
-      <Menu mode="horizontal">
+      <Menu mode="horizontal" selectedKeys={[selectKey]}>
         <Menu.SubMenu key="학사정보" title="학사정보">
           <Menu.ItemGroup title="학사 서비스">
-            <Menu.Item key="입대휴학신청">입대휴학신청</Menu.Item>
-            <Menu.Item key="복학신청">복학신청</Menu.Item>
-            <Menu.Item key="수강신청서출력">수강신청서출력</Menu.Item>
-            <Menu.Item key="강의평가">강의평가</Menu.Item>
-            <Menu.Item key="개설강좌 조회">개설강좌 조회</Menu.Item>
-            <Menu.Item key="성적조회">성적조회</Menu.Item>
+            <Menu.Item key="입대휴학신청">
+              <Link to="/information/leave">입대휴학신청</Link>
+            </Menu.Item>
+            <Menu.Item key="복학신청">
+              <Link to="/information/return">복학신청</Link>
+            </Menu.Item>
+            <Menu.Item key="수강신청서출력">
+              <Link to="/information/classes">수강신청서출력</Link>
+            </Menu.Item>
+            <Menu.Item key="강의평가">
+              <Link to="/information/evaluation">강의평가</Link>
+            </Menu.Item>
+            <Menu.Item key="개설강좌 조회">
+              <Link to="/information/lecturLookup">개설강좌 조회</Link>
+            </Menu.Item>
+            <Menu.Item key="성적조회">
+              <Link to="/information/gradeLookup">성적조회</Link>
+            </Menu.Item>
           </Menu.ItemGroup>
           <Menu.ItemGroup title="학생 서비스">
-            <Menu.Item key="장학증서 출력">장학증서 출력</Menu.Item>
-            <Menu.Item key="도우미 활동">도우미 활동</Menu.Item>
-            <Menu.Item key="해외봉사 활동">해외봉사 활동</Menu.Item>
-            <Menu.Item key="취업이력사항">취업이력사항</Menu.Item>
+            <Menu.Item key="장학증서 출력">
+              <Link to="/information/certificateLookup">장학증서 출력</Link>
+            </Menu.Item>
+            <Menu.Item key="도우미 활동">
+              <Link to="/information/helper">도우미 활동</Link>
+            </Menu.Item>
+            <Menu.Item key="해외봉사 활동">
+              <Link to="/information/volunteer">해외봉사 활동</Link>
+            </Menu.Item>
+            <Menu.Item key="취업이력사항">
+              <Link to="/information/record">취업이력사항</Link>
+            </Menu.Item>
           </Menu.ItemGroup>
         </Menu.SubMenu>
         <Menu.Item
