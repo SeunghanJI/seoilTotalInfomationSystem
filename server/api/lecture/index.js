@@ -69,9 +69,6 @@ const getLecturesWithTerm = (term) => {
                 if (err) {
                     reject(ERROR_CODE[500]);
                 }
-                if (!rows.length) {
-                    reject(ERROR_CODE[400]);
-                }
                 resolve(rows);
             });
     });
@@ -93,9 +90,6 @@ const getStudentLectures = (userId, term) => {
             [], (err, rows) => {
                 if (err) {
                     reject(ERROR_CODE[500]);
-                }
-                if (!rows.length) {
-                    reject({ code: 400, message: '해당학기에 수강한 강의가 없습니다.' });
                 }
                 resolve(rows);
             });
