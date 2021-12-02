@@ -7,4 +7,7 @@ app.use('/auth', apiAuth);
 const apiUser = require('./user/index');
 app.use('/user', apiUser);
 
+const apiLecture = require('./lecture/index');
+app.use('/lecture', apiLecture);
+
 module.exports = app;
