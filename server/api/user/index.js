@@ -40,7 +40,7 @@ const getId = session => {
                 if (!row) {
                     reject(ERROR_CODE[400])
                 }
-                resolve(row);
+                resolve(row.id);
             });
     });
 };
@@ -59,6 +59,8 @@ const getStudentInfo = (tableName, id) => {
                 if (!row) {
                     reject(ERROR_CODE[400])
                 }
+                row.isBreak = row.isBreak ? true : false;
+                row.isAgreeCollectionData = row.isAgreeCollectionData ? true : false;
                 resolve(row);
             });
     });
@@ -134,6 +136,47 @@ const insertProfessor = (professorInfo) => {
             function (err) {
                 if (err) {
                     reject(ERROR_CODE[500]);
+                }
+                resolve(this.lastID);
+            });
+    });
+};
+
+const updateUser = (userId, tableName, updateInfo) => {
+    updateInfo = {
+        ...!!updateInfo.email && { email: updateInfo.email },
+        ...!!updateInfo.phoneNum && { phone_num: updateInfo.phoneNum },
+        ...updateInfo.isBreak !== undefined && { is_break: updateInfo.isBreak ? 1 : 0 },
+        ...updateInfo.isAgreeCollectionData !== undefined && { is_agree_collection_data: updateInfo.isAgreeCollectionData ? 1 : 0 }
+    };
+    const table = `update ${tableName} set `;
+    const update = Object.entries(updateInfo).map(([key, value]) => `${key} = ${isNaN(value) ? `"${value}"` : value}`).join(', ');
+    const conditional = ` where id = ${userId}`
+    return new Promise((resolve, reject) => {
+        db.run(table + update + conditional,
+            function (err) {
+                if (err) {
+                    reject(ERROR_CODE[400]);
+                }
+                resolve(this.lastID);
+            });
+    });
+};
+
+const updateAddress = (userId, tableName, updateInfo) => {
+    updateInfo = {
+        ...!!updateInfo.zipCode && { zip_code: updateInfo.zipCode },
+        ...!!updateInfo.region && { region: updateInfo.region },
+        ...!!updateInfo.detail && { detail_address: updateInfo.detail }
+    };
+    const table = `update ${tableName} set `;
+    const update = Object.entries(updateInfo).map(([key, value]) => `${key} = ${isNaN(value) ? `"${value}"` : value}`).join(', ');
+    const conditional = ` where id = ${userId}`
+    return new Promise((resolve, reject) => {
+        db.run(table + update + conditional,
+            function (err) {
+                if (err) {
+                    reject(ERROR_CODE[400]);
                 }
                 resolve(this.lastID);
             });
@@ -217,6 +260,33 @@ app.post('/professor', (req, res) => {
         .catch(failed => {
             res.status(failed.code).json(failed.message);
         })
+});
+
+app.patch('/', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+    const { base, address, currentAddress } = req.body;
+
+    if (!cookie && !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
+    }
+    if (!base && !address && !currentAddress) {
+        return res.status(ERROR_CODE[400].code).json(ERROR_CODE[400].message);
+    }
+
+    getId(session)
+        .then((userId) => {
+            return Promise.all([!!base && updateUser(userId, checkId(userId), base),
+            !!address && updateAddress(userId, 'user_address', address),
+            !!currentAddress && updateAddress(userId, 'user_current_address', currentAddress)
+            ]);
+        })
+        .then(ignore => {
+            res.status(200).json({ isUpdated: true });
+        })
+        .catch(failed => {
+            res.status(failed.code).json(failed.message);
+        });
 });
 
 module.exports = app;
