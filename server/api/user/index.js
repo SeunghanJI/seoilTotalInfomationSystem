@@ -10,6 +10,18 @@ const db = new sqlite3.Database('db/main.db', (err) => {
     };
 });
 
+const generateAccount = (accountInfo) => {
+    return new Promise((resolve, reject) => {
+        db.run(`insert into account(id,password) values(${accountInfo.id},"${accountInfo.password}")`,
+            (err) => {
+                if (err) {
+                    reject(ERROR_CODE[500]);
+                }
+                resolve(true);
+            });
+    });
+};
+
 const checkId = id => {
     if (100000000 < id && id < 999999999)
         return 'student';
@@ -25,7 +37,26 @@ const getId = session => {
                 if (err) {
                     reject(ERROR_CODE[500]);
                 }
-                if (!Object.keys(row).length) {
+                if (!row) {
+                    reject(ERROR_CODE[400])
+                }
+                resolve(row);
+            });
+    });
+};
+
+const getStudentInfo = (tableName, id) => {
+    return new Promise((resolve, reject) => {
+        db.get(`select id,${tableName}.name "name",birthday,dept.name "deptName", email, phone_num "phoneNum",is_break "isBreak",is_agree_collection_data "isAgreeCollectionData" 
+                from ${tableName}
+                inner join dept
+                on ${tableName}.department = dept.code
+                where id = ${id}`,
+            (err, row) => {
+                if (err) {
+                    reject(ERROR_CODE[500]);
+                }
+                if (!row) {
                     reject(ERROR_CODE[400])
                 }
                 resolve(row);
@@ -38,6 +69,38 @@ const getSimpleUserInfo = (tableName, id) => {
         db.get(`select id,${tableName}.name as name,dept.name as deptName from ${tableName}
                 inner join dept
                 on ${tableName}.department = dept.code
+                where id = ${id}`,
+            (err, row) => {
+                if (err) {
+                    reject(ERROR_CODE[500]);
+                }
+                if (!row) {
+                    reject(ERROR_CODE[400])
+                }
+                resolve(row);
+            });
+    });
+};
+
+const getUserAddress = (id) => {
+    return new Promise((resolve, reject) => {
+        db.get(`select zip_code "zipCode",region,detail_address "detail" from user_address
+                where id = ${id}`,
+            (err, row) => {
+                if (err) {
+                    reject(ERROR_CODE[500]);
+                }
+                if (!row) {
+                    reject(ERROR_CODE[400])
+                }
+                resolve(row);
+            });
+    });
+};
+
+const getUserCurrentAddress = (id) => {
+    return new Promise((resolve, reject) => {
+        db.get(`select zip_code "zipCode",region,detail_address "detailAddress" from user_current_address
                 where id = ${id}`,
             (err, row) => {
                 if (err) {
@@ -77,21 +140,34 @@ const insertProfessor = (professorInfo) => {
     });
 };
 
-const generateStudentAccount = (accountInfo) => {
-    return new Promise((resolve, reject) => {
-        db.run(`insert into account(id,password) values(${accountInfo.id},"${accountInfo.password}")`,
-            (err) => {
-                if (err) {
-                    reject(ERROR_CODE[500]);
-                }
-                resolve(true);
-            });
-    });
-};
+
+app.get('/', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+
+    if (!cookie && !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message)
+    }
+
+    getId(session)
+        .then(user => {
+            return Promise.all([getStudentInfo(checkId(user.id), user.id), getUserAddress(user.id), getUserCurrentAddress(user.id)]);
+        })
+        .then(([base, address, currentAddress]) => {
+            res.status(200).json({ base, address, currentAddress });
+        })
+        .catch(failed => {
+            res.status(failed.code).json(failed.message);
+        })
+});
 
 app.get('/simple', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
+
+    if (!cookie && !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message)
+    }
 
     getId(session)
         .then(user => {
@@ -114,7 +190,7 @@ app.post('/student', (req, res) => {
 
     insertStudent(body)
         .then(rowid => {
-            return generateStudentAccount({ id: rowid, password: body.birthday.split('/').join('') });
+            return generateAccount({ id: rowid, password: body.birthday.split('/').join('') });
         })
         .then(ignore => {
             res.status(200).json({ insert: true });
@@ -133,7 +209,7 @@ app.post('/professor', (req, res) => {
 
     insertProfessor(body)
         .then(rowid => {
-            return generateStudentAccount({ id: rowid, password: body.birthday.split('/').join('') });
+            return generateAccount({ id: rowid, password: body.birthday.split('/').join('') });
         })
         .then(ignore => {
             res.status(200).json({ insert: true });
