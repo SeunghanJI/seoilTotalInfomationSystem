@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 
 import LoginForm from '../../components/LoginForm';
 
+import LecturLookup from './LecturLookup';
+
 import { useParams } from 'react-router';
 
 import { Tabs } from 'antd';
@@ -68,7 +70,7 @@ const Information = ({ isLogin, loginCallBack }) => {
               강의평가
             </TabPane>
             <TabPane tab="개설강좌 조회" key="lecturLookup">
-              개설강좌 조회
+              <LecturLookup></LecturLookup>
             </TabPane>
             <TabPane tab="성적조회" key="gradeLookup">
               성적조회
