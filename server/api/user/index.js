@@ -27,7 +27,7 @@ const checkId = id => {
         return 'student';
     else
         return 'professor';
-}
+};
 
 const getId = session => {
     return new Promise((resolve, reject) => {
@@ -40,7 +40,7 @@ const getId = session => {
                 if (!row) {
                     reject(ERROR_CODE[400])
                 }
-                resolve(row.id);
+                resolve(row);
             });
     });
 };
@@ -77,7 +77,7 @@ const getSimpleUserInfo = (tableName, id) => {
                     reject(ERROR_CODE[500]);
                 }
                 if (!row) {
-                    reject(ERROR_CODE[400])
+                    reject(ERROR_CODE[400]);
                 }
                 resolve(row);
             });
@@ -93,7 +93,7 @@ const getUserAddress = (id) => {
                     reject(ERROR_CODE[500]);
                 }
                 if (!row) {
-                    reject(ERROR_CODE[400])
+                    reject(ERROR_CODE[400]);
                 }
                 resolve(row);
             });
@@ -109,7 +109,7 @@ const getUserCurrentAddress = (id) => {
                     reject(ERROR_CODE[500]);
                 }
                 if (!row) {
-                    reject(ERROR_CODE[400])
+                    reject(ERROR_CODE[400]);
                 }
                 resolve(row);
             });
@@ -201,7 +201,7 @@ app.get('/', (req, res) => {
         })
         .catch(failed => {
             res.status(failed.code).json(failed.message);
-        })
+        });
 });
 
 app.get('/simple', (req, res) => {
@@ -221,7 +221,7 @@ app.get('/simple', (req, res) => {
         })
         .catch(failed => {
             res.status(failed.code).json(failed.message);
-        })
+        });
 });
 
 app.post('/student', (req, res) => {
@@ -240,7 +240,7 @@ app.post('/student', (req, res) => {
         })
         .catch(failed => {
             res.status(failed.code).json(failed.message);
-        })
+        });
 });
 
 app.post('/professor', (req, res) => {
@@ -259,7 +259,7 @@ app.post('/professor', (req, res) => {
         })
         .catch(failed => {
             res.status(failed.code).json(failed.message);
-        })
+        });
 });
 
 app.patch('/', (req, res) => {
@@ -275,10 +275,10 @@ app.patch('/', (req, res) => {
     }
 
     getId(session)
-        .then((userId) => {
-            return Promise.all([!!base && updateUser(userId, checkId(userId), base),
-            !!address && updateAddress(userId, 'user_address', address),
-            !!currentAddress && updateAddress(userId, 'user_current_address', currentAddress)
+        .then((user) => {
+            return Promise.all([!!base && updateUser(user.id, checkId(user.id), base),
+            !!address && updateAddress(user.id, 'user_address', address),
+            !!currentAddress && updateAddress(user.id, 'user_current_address', currentAddress)
             ]);
         })
         .then(ignore => {
