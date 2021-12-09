@@ -84,9 +84,9 @@ const getSimpleUserInfo = (tableName, id) => {
     });
 };
 
-const getUserAddress = (id) => {
+const getUserAddress = (tableName, id) => {
     return new Promise((resolve, reject) => {
-        db.get(`select zip_code "zipCode",region,detail_address "detail" from user_address
+        db.get(`select zip_code "zipCode",region,detail_address "detail" from ${tableName}
                 where id = ${id}`,
             (err, row) => {
                 if (err) {
@@ -95,21 +95,8 @@ const getUserAddress = (id) => {
                 if (!row) {
                     reject(ERROR_CODE[400]);
                 }
-                resolve(row);
-            });
-    });
-};
-
-const getUserCurrentAddress = (id) => {
-    return new Promise((resolve, reject) => {
-        db.get(`select zip_code "zipCode",region,detail_address "detailAddress" from user_current_address
-                where id = ${id}`,
-            (err, row) => {
-                if (err) {
-                    reject(ERROR_CODE[500]);
-                }
-                if (!row) {
-                    reject(ERROR_CODE[400]);
+                if (!row.detail) {
+                    delete (row.detail);
                 }
                 resolve(row);
             });
@@ -194,7 +181,9 @@ app.get('/', (req, res) => {
 
     getId(session)
         .then(user => {
-            return Promise.all([getStudentInfo(checkId(user.id), user.id), getUserAddress(user.id), getUserCurrentAddress(user.id)]);
+            return Promise.all([getStudentInfo(checkId(user.id), user.id),
+            getUserAddress('user_address', user.id),
+            getUserAddress('user_current_address', user.id)]);
         })
         .then(([base, address, currentAddress]) => {
             res.status(200).json({ base, address, currentAddress });
@@ -276,13 +265,18 @@ app.patch('/', (req, res) => {
 
     getId(session)
         .then((user) => {
-            return Promise.all([!!base && updateUser(user.id, checkId(user.id), base),
-            !!address && updateAddress(user.id, 'user_address', address),
-            !!currentAddress && updateAddress(user.id, 'user_current_address', currentAddress)
+            return Promise.all([user, !!base && updateUser(user.id, checkId(user.id), base),
+                !!address && updateAddress(user.id, 'user_address', address),
+                !!currentAddress && updateAddress(user.id, 'user_current_address', currentAddress)
             ]);
         })
-        .then(ignore => {
-            res.status(200).json({ isUpdated: true });
+        .then(([user, ignore]) => {
+            return Promise.all([getStudentInfo(checkId(user.id), user.id),
+            getUserAddress('user_address', user.id),
+            getUserAddress('user_current_address', user.id)]);
+        })
+        .then(([base, address, currentAddress]) => {
+            res.status(200).json({ base, address, currentAddress });
         })
         .catch(failed => {
             res.status(failed.code).json(failed.message);
