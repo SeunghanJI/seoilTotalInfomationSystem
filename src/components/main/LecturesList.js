@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Table } from 'antd';
+
+import axios from 'axios';
+axios.defaults.baseURL = 'http://localhost:3000/';
 
 const columns = [
   {
     title: '교수명',
-    dataIndex: 'name',
+    dataIndex: 'professorName',
   },
   {
     title: '학과',
-    dataIndex: 'department',
+    dataIndex: 'deptName',
   },
   {
     title: '강의명',
-    dataIndex: 'lecturesName',
+    dataIndex: 'lectureName',
   },
   {
     title: '학점',
@@ -20,47 +23,37 @@ const columns = [
   },
   {
     title: '인원수',
-    dataIndex: 'max',
-  },
-];
-
-const data = [
-  {
-    key: '1',
-    name: '이광형',
-    department: '소프트웨어공학과',
-    lecturesName: 'C언어',
-    credit: 3,
-    max: 16,
-  },
-  {
-    key: '2',
-    name: '고윤태',
-    department: '일본어',
-    lecturesName: 'AV배우',
-    credit: 2,
-    max: 10,
-  },
-  {
-    key: '3',
-    name: '지승한',
-    department: '전기공학과',
-    lecturesName: '피카츄',
-    credit: 3,
-    max: 50,
+    dataIndex: 'maxPersonnel',
   },
 ];
 
 const LecturesList = () => {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    axios
+      .get('api/lecture/user')
+      .then(({ data }) => {
+        console.log(data);
+        setData(data);
+      })
+      .catch((error) => {
+        console.log(error.message);
+      });
+  }, []);
+
   return (
     <>
       <p>현 학기 강의 목록</p>
-      <Table
-        columns={columns}
-        pagination={false}
-        dataSource={data}
-        size="middle"
-      />
+      {data.length ? (
+        <Table
+          columns={columns}
+          pagination={false}
+          dataSource={data}
+          size="middle"
+          rowKey="lectureId"
+        />
+      ) : null}
     </>
   );
 };
