@@ -95,8 +95,6 @@ app.get('/', (req, res) => {
     const year = query.year;
     const term = query.term;
 
-    console.log(req.query);
-
     if (!cookie || !session) {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
@@ -117,7 +115,6 @@ app.get('/user', (req, res) => {
     const query = !!Object.keys(req.query).length ? req.query : thisTerm();
     const year = query.year;
     const term = query.term;
-    console.log(year, term)
 
     if (!cookie || !session) {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);

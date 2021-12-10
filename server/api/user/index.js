@@ -1,6 +1,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const app = express();
+const nodemailer = require('nodemailer');
 const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
 
@@ -25,8 +26,55 @@ const generateAccount = (accountInfo) => {
 const checkId = id => {
     if (100000000 < id && id < 999999999)
         return 'student';
-    else
+    else if (1000000 < id && id < 9999999)
         return 'professor';
+    else
+        return '';
+};
+
+const generatePW = () => {
+    let password = '';
+    const character = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!*~';
+    const stringLength = 8;
+
+    for (let i = 0; i < stringLength; i++) {
+        password += character.charAt(Math.floor(Math.random() * character.length));
+    }
+    return password;
+}
+
+const verifyEmail = (email) => {
+    const regularEmail = /^([0-9a-zA-Z_\.-]+)@([0-9a-zA-Z_-]+)(\.[0-9a-zA-Z_-]+){1,2}$/;
+    return regularEmail.test(email);
+};
+
+const sendMail = (toEmail, password) => {
+    const mailConfig = {
+        service: 'Naver',
+        host: 'smtp.naver.com',
+        port: 587,
+        auth: {
+            user: 'jsh3581482@naver.com',
+            pass: 'kgs185046!'
+        }
+    };
+
+    const message = {
+        from: 'jsh3581482@naver.com',
+        to: toEmail,
+        subject: '임시 비밀번호 발송',
+        html: `<p> 바뀐 임시 비밀번호는 ${password}입니다. </p>`
+    };
+
+    const transporter = nodemailer.createTransport(mailConfig)
+    return new Promise((resolve, reject) => {
+        transporter.sendMail(message, (err, info) => {
+            if (err) {
+                reject();
+            }
+            resolve({ isSend: true });
+        });
+    });
 };
 
 const getId = session => {
@@ -129,6 +177,22 @@ const insertProfessor = (professorInfo) => {
     });
 };
 
+const updateUserPassword = (userId, newPassword, password = null) => {
+    const currentPassword = !!password ? ` and password = "${password}"` : '';
+    return new Promise((resolve, reject) => {
+        db.run(`update account set password = "${newPassword}" where id = ${userId}` + currentPassword,
+            function (err) {
+                if (err) {
+                    reject(ERROR_CODE[500]);
+                }
+                if (!this.changes) {
+                    reject(ERROR_CODE[400]);
+                }
+                resolve(true);
+            });
+    });
+};
+
 const updateUser = (userId, tableName, updateInfo) => {
     updateInfo = {
         ...!!updateInfo.email && { email: updateInfo.email },
@@ -143,7 +207,7 @@ const updateUser = (userId, tableName, updateInfo) => {
         db.run(table + update + conditional,
             function (err) {
                 if (err) {
-                    reject(ERROR_CODE[400]);
+                    reject(ERROR_CODE[500]);
                 }
                 resolve(this.lastID);
             });
@@ -163,13 +227,29 @@ const updateAddress = (userId, tableName, updateInfo) => {
         db.run(table + update + conditional,
             function (err) {
                 if (err) {
-                    reject(ERROR_CODE[400]);
+                    reject(ERROR_CODE[500]);
                 }
                 resolve(this.lastID);
             });
     });
 };
 
+const checkUser = (tableName, id, birthday) => {
+    return new Promise((resolve, reject) => {
+        db.get(`select id from ${tableName}
+                where id = "${id}"
+                and birthday = "${birthday}"`,
+            [], (err, row) => {
+                if (err) {
+                    reject(ERROR_CODE[500]);
+                }
+                if (!row) {
+                    reject(ERROR_CODE[400]);
+                }
+                resolve({ isValid: true });
+            });
+    });
+};
 
 app.get('/', (req, res) => {
     const cookie = req.headers.cookie;
@@ -256,11 +336,11 @@ app.patch('/', (req, res) => {
     const session = utils.getSession(cookie);
     const { base, address, currentAddress } = req.body;
 
-    if (!cookie && !session) {
-        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
-    }
     if (!base && !address && !currentAddress) {
         return res.status(ERROR_CODE[400].code).json(ERROR_CODE[400].message);
+    }
+    if (!cookie && !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
 
     getId(session)
@@ -279,6 +359,56 @@ app.patch('/', (req, res) => {
             res.status(200).json({ base, address, currentAddress });
         })
         .catch(failed => {
+            res.status(failed.code).json(failed.message);
+        });
+});
+
+app.patch('/password', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+    const body = req.body;
+
+    if (!utils.checkRequiredProperties(['password', 'newPassword'], body)) {
+        return res.status(ERROR_CODE[400].code).json(ERROR_CODE[400].message);
+    }
+    if (!cookie && !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
+    }
+
+    getId(session)
+        .then(user => {
+            return updateUserPassword(user.id, body.newPassword, body.password)
+        })
+        .then(success => {
+            res.status(200).json({ isChanged: success });
+        })
+        .catch(failed => {
+            res.status(failed.code).json(failed.message);
+        });
+});
+
+app.post('/temp-password', (req, res) => {
+    const { id, birthday, email } = req.body;
+    const tempPassword = generatePW();
+
+    if (!utils.checkRequiredProperties(['id', 'email'], req.body)) {
+        return res.status(400).json({ message: ERROR_CODE[400] });
+    }
+    if (!verifyEmail(email)) {
+        return res.status(400).json({ message: '이메일 형식이 잘못 되었습니다.' });
+    }
+
+    checkUser(checkId(id), id, birthday)
+        .then(ignore => {
+            return updateUserPassword(id, tempPassword)
+        })
+        .then(ignore => {
+            return sendMail(email, tempPassword);
+        })
+        .then((successSendMail) => {
+            res.status(200).json(successSendMail);
+        })
+        .catch((failed) => {
             res.status(failed.code).json(failed.message);
         });
 });
