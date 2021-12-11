@@ -2,6 +2,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const nodemailer = require('nodemailer');
+const dayjs = require('dayjs');
 const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
 
@@ -105,7 +106,7 @@ const getStudentInfo = (tableName, id) => {
                     reject(ERROR_CODE[500]);
                 }
                 if (!row) {
-                    reject(ERROR_CODE[400])
+                    reject(ERROR_CODE[400]);
                 }
                 row.isBreak = row.isBreak ? true : false;
                 row.isAgreeCollectionData = row.isAgreeCollectionData ? true : false;
@@ -388,7 +389,8 @@ app.patch('/password', (req, res) => {
 });
 
 app.post('/temp-password', (req, res) => {
-    const { id, birthday, email } = req.body;
+    const { id, email } = req.body;
+    const birthday = dayjs(req.body.birthday).format('YYYY/MM/DD');
     const tempPassword = generatePW();
 
     if (!utils.checkRequiredProperties(['id', 'email'], req.body)) {
