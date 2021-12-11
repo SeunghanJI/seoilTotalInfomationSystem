@@ -2,6 +2,7 @@ import React from 'react';
 
 import LoginForm from '../../components/LoginForm';
 import Privacy from './Privacy';
+import AccountInformationManagement from './AccountInformationManagement';
 
 import { Tabs } from 'antd';
 const { TabPane } = Tabs;
@@ -14,7 +15,9 @@ const Profile = ({ isLogin, loginCallBack }) => {
           <Privacy></Privacy>
         </TabPane>
         <TabPane tab="장학금 계좌 관리" key="2"></TabPane>
-        <TabPane tab="계정 정보관리" key="3"></TabPane>
+        <TabPane tab="계정 정보 관리" key="3">
+          <AccountInformationManagement></AccountInformationManagement>
+        </TabPane>
       </Tabs>
     );
   };
