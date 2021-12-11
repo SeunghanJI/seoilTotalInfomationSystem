@@ -35,7 +35,7 @@ const getId = session => {
 
 const getLecturesWithTerm = (year, term) => {
     return new Promise((resolve, reject) => {
-        db.all(`select lecture.id as lectureId,lecture.name as lectureName ,professor.name as professorName, term, dept.name as deptName , max_personnel as maxPersonnel
+        db.all(`select lecture.id as lectureId,lecture.name as lectureName, credit, professor.name as professorName, dept.name as deptName , max_personnel as maxPersonnel
                 from lecture
                 inner join professor
                 on lecture.prof_id = professor.id
@@ -54,9 +54,9 @@ const getLecturesWithTerm = (year, term) => {
 
 const getStudentLectures = (userId, year, term) => {
     return new Promise((resolve, reject) => {
-        db.all(`select lectureId, lectureName, professorName, deptName, year, term, maxPersonnel from grade
+        db.all(`select lectureId, lectureName, professorName, deptName, credit, maxPersonnel from grade
                 inner join 
-                (select lecture.id as lectureId,lecture.name as lectureName ,professor.name as professorName, year, term, dept.name as deptName , max_personnel as maxPersonnel
+                (select lecture.id as lectureId,lecture.name as lectureName ,professor.name as professorName, credit, year, term, dept.name as deptName, max_personnel as maxPersonnel
                 from lecture
                 inner join professor
                 on lecture.prof_id = professor.id
