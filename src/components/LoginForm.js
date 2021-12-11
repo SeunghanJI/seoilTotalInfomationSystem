@@ -6,6 +6,38 @@ axios.defaults.baseURL = 'http://localhost:3000/';
 
 const LoginForm = ({ loginCallBack }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [findPassword, setFindPassword] = useState({
+    id: '',
+    birthday: '',
+    email: '',
+  });
+
+  const onChange = (e) => {
+    const cloneData = { ...findPassword };
+
+    const { name, value } = e.target;
+    setFindPassword({ ...cloneData, [name]: value });
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    const body = { ...findPassword };
+
+    const isFullFill = ['id', 'birthday', 'email'].every((v) => !!body[v]);
+
+    if (!isFullFill) {
+      return;
+    }
+
+    axios
+      .post('api/user/temp-password', body)
+      .then(({ data: { isSend } }) => {
+        setIsModalVisible(!isSend);
+      })
+      .catch((error) => {
+        console.log(error.message);
+      });
+  };
 
   const onFinish = (body) => {
     console.log(body);
@@ -67,7 +99,31 @@ const LoginForm = ({ loginCallBack }) => {
           setIsModalVisible(false);
         }}
       >
-        <div>비밀번호 찾기 방법 구상 좀</div>
+        <div>
+          <form onSubmit={onSubmit}>
+            <Input
+              placeholder="학번"
+              name="id"
+              onChange={onChange}
+              style={{ marginBottom: '8px' }}
+            />
+            <Input
+              placeholder="생년월일"
+              name="birthday"
+              onChange={onChange}
+              style={{ marginBottom: '8px' }}
+            />
+            <Input
+              placeholder="email"
+              name="email"
+              onChange={onChange}
+              style={{ marginBottom: '8px' }}
+            />
+            <Button type="primary" htmlType="submit" block>
+              임시 비밀번호 발송
+            </Button>
+          </form>
+        </div>
       </Modal>
     </>
   );
