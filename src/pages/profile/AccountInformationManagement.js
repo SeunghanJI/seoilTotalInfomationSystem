@@ -33,6 +33,10 @@ const AccountInformationManagement = () => {
       .then(({ data: isChaged }) => {
         if (isChaged) {
           alert('비밀번호가 변경되었습니다.');
+          setPasswordInformation({
+            password: '',
+            newPassword: '',
+          });
         }
       })
       .catch((error) => {
@@ -43,14 +47,14 @@ const AccountInformationManagement = () => {
   return (
     <form onSubmit={onSubmit}>
       <h3>비밀번호 재설정</h3>
-      <Input
+      <Input.Password
         placeholder="현재 비밀번호"
         name="password"
         onChange={onChange}
         value={passwordInformation.password}
         style={{ marginBottom: '16px' }}
       />
-      <Input
+      <Input.Password
         placeholder="변경할 비밀번호"
         name="newPassword"
         onChange={onChange}

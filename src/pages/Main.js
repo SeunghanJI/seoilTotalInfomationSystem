@@ -7,7 +7,11 @@ import LoginForm from '../components/LoginForm';
 import Profile from '../components/Profile';
 import LechuresCalendar from '../components/main/LechuresCalendar';
 
+import { useNavigate } from 'react-router-dom';
+
 const Main = ({ isLogin, loginCallBack }) => {
+  const navigate = useNavigate();
+
   return (
     <div>
       <img
@@ -42,7 +46,13 @@ const Main = ({ isLogin, loginCallBack }) => {
             )}
           </Card>
           <Card>
-            <Button type="link" block>
+            <Button
+              type="link"
+              block
+              onClick={() => {
+                navigate('/information/evaluation');
+              }}
+            >
               강의평가
             </Button>
           </Card>
