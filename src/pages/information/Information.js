@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import LoginForm from '../../components/LoginForm';
 
 import LecturLookup from './LecturLookup';
+import Evaluation from './Evaluation';
 
 import { useParams } from 'react-router';
 
@@ -67,7 +68,7 @@ const Information = ({ isLogin, loginCallBack }) => {
               수강신청서출력
             </TabPane>
             <TabPane tab="강의평가" key="evaluation">
-              강의평가
+              <Evaluation></Evaluation>
             </TabPane>
             <TabPane tab="개설강좌 조회" key="lecturLookup">
               <LecturLookup></LecturLookup>
