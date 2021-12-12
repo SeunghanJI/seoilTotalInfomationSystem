@@ -29,7 +29,7 @@ const AccountInformationManagement = () => {
     }
 
     axios
-      .post('api/password', body)
+      .patch('api/user/password', body)
       .then(({ data: isChaged }) => {
         if (isChaged) {
           alert('비밀번호가 변경되었습니다.');
