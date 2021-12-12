@@ -194,8 +194,8 @@ app.get('/', (req, res) => {
                     return getStudentEvaluations(user.id, query.lectureId, week);
                 })
         })
-        .then(([user, questions]) => {
-            res.status(200).json([user, questions]);
+        .then((questions) => {
+            res.status(200).json(questions);
         })
         .catch(failed => {
             res.status(failed.code).json(failed.message);
@@ -262,6 +262,19 @@ app.post('/answer', (req, res) => {
     const session = utils.getSession(cookie);
     const body = req.body;
 
+    const dayMap = {
+        0: '일',
+        1: '월',
+        2: '화',
+        3: '수',
+        4: '목',
+        5: '금',
+        6: '토'
+    };
+    const week = dayjs().diff(termDate.start, 'week');
+    const day = dayMap[dayjs().format('d')]; //실제사용 요일
+    const testDay = '월'; //테스트용 요일
+
     if (!cookie && !session) {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
@@ -276,12 +289,28 @@ app.post('/answer', (req, res) => {
 
     getId(session)
         .then(user => {
-            return Promise.all(body.answers.map(answer => {
+            return Promise.all(([user, body.answers.map(answer => {
                 return updateAnswer(user.id, answer.evaluationId, answer.text);
-            }));
+            })]));
         })
-        .then(ignore => {
-            res.status(200).json({ isSubmited: true });
+        .then(([user, ignore]) => {
+            return getLecturesInfo(user.id, testDay, week);
+        })
+        .then(evaluationList => {
+            if (evaluationList.length) {
+                evaluationList = evaluationList.map(evaluation => {
+                    return {
+                        lectureId: evaluation.lectureId,
+                        lectureName: evaluation.lectureName,
+                        professorName: evaluation.professorName,
+                        day: evaluation.day,
+                        week: evaluation.week,
+                        time: evaluation.time,
+                        ...!!evaluation.isSubmit && { isSubmit: true }
+                    };
+                });
+            }
+            res.status(200).json(evaluationList);
         })
         .catch(failed => {
             res.status(failed.code).json(failed.message);
