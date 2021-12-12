@@ -39,6 +39,7 @@ const Evaluation = () => {
       .then(({ data }) => {
         alert('제출되었습니다.');
         setEvaluationList(data);
+        init();
       })
       .catch((error) => {
         console.log(error.message);
