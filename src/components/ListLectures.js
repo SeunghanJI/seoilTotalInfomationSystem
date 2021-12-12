@@ -3,7 +3,6 @@ import React from 'react';
 import { List } from 'antd';
 
 const ListLectures = ({ data }) => {
-  console.log(data);
   return (
     <List
       size="large"

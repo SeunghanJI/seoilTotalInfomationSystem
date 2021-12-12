@@ -108,7 +108,7 @@ const LoginForm = ({ loginCallBack }) => {
               style={{ marginBottom: '8px' }}
             />
             <Input
-              placeholder="생년월일"
+              placeholder="생년월일 8자리"
               name="birthday"
               onChange={onChange}
               style={{ marginBottom: '8px' }}
