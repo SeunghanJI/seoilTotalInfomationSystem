@@ -279,7 +279,7 @@ app.get('/simple', (req, res) => {
     const session = utils.getSession(cookie);
 
     if (!cookie && !session) {
-        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message)
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
 
     getId(session)
@@ -378,7 +378,7 @@ app.patch('/password', (req, res) => {
 
     getId(session)
         .then(user => {
-            return updateUserPassword(user.id, body.newPassword, body.password)
+            return updateUserPassword(user.id, body.newPassword, body.password);
         })
         .then(success => {
             res.status(200).json({ isChanged: success });
