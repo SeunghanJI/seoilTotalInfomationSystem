@@ -13,4 +13,7 @@ app.use('/lecture', apiLecture);
 const apiEvaluation = require('./evaluation/index');
 app.use('/evaluation', apiEvaluation);
 
+const apiSchedule = require('./schedule/index');
+app.use('/schedule', apiSchedule);
+
 module.exports = app;
