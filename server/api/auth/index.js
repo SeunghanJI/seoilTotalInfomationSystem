@@ -4,6 +4,14 @@ const app = express();
 const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
 
+const knex = require('knex')({
+    client: 'sqlite3',
+    connection: {
+        filename: 'db/main.db'
+    },
+    useNullAsDefault: true
+});
+
 const db = new sqlite3.Database('db/main.db', (err) => {
     if (err) {
         console.error(err.message);
@@ -78,6 +86,24 @@ app.post('/login', (req, res) => {
         })
         .catch(err => {
             res.status(err.code).json(err.message);
+        });
+});
+
+app.delete('/logout', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+
+    if (!cookie || !session) {
+        return res.status(200).json({ isLogOut: true });
+    }
+
+    knex('account').where({ session }).update({ session: null })
+        .then(ignore => {
+            utils.removeSessionCookie(res);
+            res.status(200).json({ isLogOut: true });
+        })
+        .catch(ignore => {
+            res.status(500).json(ERROR_CODE[500].message);
         });
 });
 
