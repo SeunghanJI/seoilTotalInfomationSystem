@@ -60,7 +60,8 @@ const LechuresCalendar = () => {
             const styleMap = {
               color,
               ...(dayjs().format('YYYYMMDD') === days.format('YYYYMMDD') && {
-                backgroundColor: '#1890ff',
+                color: '#1890ff',
+                fontWeight: 'bold',
               }),
             };
 
@@ -90,7 +91,14 @@ const LechuresCalendar = () => {
         <span style={{ margin: '0 10%' }}>{today.format('YYYY 년 MM 월')}</span>
         {drawButton('next')}
       </div>
-      <table style={{ width: '100%' }}>
+      <table style={{ flex: '1', textAlign: 'center' }}>
+        <thead>
+          <tr>
+            {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+              <td>{day}</td>
+            ))}
+          </tr>
+        </thead>
         <tbody>{calendarArr()}</tbody>
       </table>
     </>
