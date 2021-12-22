@@ -1,11 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import axios from 'axios';
+axios.defaults.baseURL = 'http://localhost:3000/';
 
 dayjs.extend(weekOfYear);
 
 const LechuresCalendar = () => {
+  const [getMoment, setMoment] = useState(dayjs());
+  const [schedules, setSchedules] = useState({});
+  const today = getMoment;
+
+  useEffect(() => {
+    axios
+      .get(
+        `api/schedule/calendar?yearMonth=${dayjs(getMoment).format('YYYYMM')}`
+      )
+      .then(({ data }) => {
+        console.log(data);
+        setSchedules(data);
+      })
+      .catch((error) => {
+        console.log(error.message);
+      });
+  }, [getMoment]);
+
   const drawButton = (type) => {
     return (
       <span
@@ -31,9 +51,6 @@ const LechuresCalendar = () => {
     }
   };
 
-  const [getMoment, setMoment] = useState(dayjs());
-  const today = getMoment;
-
   const firstWeek = today.clone().startOf('month').week();
   const lastWeek =
     today.clone().endOf('month').week() === 1
@@ -57,17 +74,46 @@ const LechuresCalendar = () => {
             const color =
               days.format('MM') !== today.format('MM') ? 'lightgray' : 'black';
 
+            const currentDay = days.format('YYYYMMDD');
             const styleMap = {
               color,
-              ...(dayjs().format('YYYYMMDD') === days.format('YYYYMMDD') && {
+              ...(dayjs().format('YYYYMMDD') === currentDay && {
                 color: '#1890ff',
                 fontWeight: 'bold',
               }),
+              position: 'relative',
             };
 
             return (
               <td key={index} style={styleMap}>
-                <span>{days.format('D')}</span>
+                <span style={{ position: 'absolute', top: '10%', left: '10%' }}>
+                  {days.format('D')}
+                </span>
+                {!!schedules[currentDay] ? (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      fontSize: '0.4rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      bottom: '1%',
+                      right: '1%',
+                      color: 'black',
+                      fontWeight: 'normal',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '0.4rem',
+                        height: '0.4rem',
+                        borderRadius: '50%',
+                        background: '#1890ff',
+                        marginRight: '2px',
+                      }}
+                    ></div>
+                    {schedules[currentDay]}
+                  </span>
+                ) : null}
               </td>
             );
           })}
