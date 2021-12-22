@@ -32,7 +32,10 @@ const Main = ({ isLogin, loginCallBack }) => {
             <LecturesList></LecturesList>
           </Card>
         )}
-        <Card style={{ flex: '1' }}>
+        <Card
+          style={{ flex: '1', display: 'flex' }}
+          bodyStyle={{ flex: '1', flexDirection: 'column', display: 'flex' }}
+        >
           <LechuresCalendar></LechuresCalendar>
         </Card>
         <div
@@ -40,7 +43,7 @@ const Main = ({ isLogin, loginCallBack }) => {
         >
           <Card>
             {isLogin ? (
-              <Profile></Profile>
+              <Profile loginCallBack={loginCallBack}></Profile>
             ) : (
               <LoginForm loginCallBack={loginCallBack}></LoginForm>
             )}

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Avatar } from 'antd';
+import { Avatar, Button } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 
 import axios from 'axios';
 
 axios.defaults.baseURL = 'http://localhost:3000/';
 
-const Profile = () => {
+const Profile = ({ loginCallBack }) => {
   const [profileData, setProfileData] = useState(null);
 
   useEffect(() => {
@@ -19,6 +19,17 @@ const Profile = () => {
         console.log(error.message);
       });
   }, []);
+
+  const onClick = () => {
+    axios
+      .delete('api/auth/logout')
+      .then(({ data: { isLogOut } }) => {
+        loginCallBack(!isLogOut);
+      })
+      .catch((error) => {
+        console.log(error.message);
+      });
+  };
 
   return (
     <div
@@ -38,6 +49,9 @@ const Profile = () => {
           </p>
         </div>
       )}
+      <Button type="primary" htmlType="button" block onClick={onClick}>
+        logout
+      </Button>
     </div>
   );
 };
