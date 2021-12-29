@@ -16,4 +16,7 @@ app.use('/evaluation', apiEvaluation);
 const apiSchedule = require('./schedule/index');
 app.use('/schedule', apiSchedule);
 
+const apiBankAccount = require('./bankAccount/index');
+app.use('/bank-account', apiBankAccount);
+
 module.exports = app;
