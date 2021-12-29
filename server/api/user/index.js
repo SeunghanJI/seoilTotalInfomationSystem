@@ -222,7 +222,7 @@ const updateAddress = (userId, tableName, updateInfo) => {
         ...!!updateInfo.detail && { detail_address: updateInfo.detail }
     };
     const table = `update ${tableName} set `;
-    const update = Object.entries(updateInfo).map(([key, value]) => `${key} = ${isNaN(value) ? `"${value}"` : value}`).join(', ');
+    const update = Object.entries(updateInfo).map(([key, value]) => `${key} = ${typeof value === 'string' ? `"${value}"` : value}`).join(', ');
     const conditional = ` where id = ${userId}`
     return new Promise((resolve, reject) => {
         db.run(table + update + conditional,
