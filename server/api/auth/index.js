@@ -3,6 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
+const crypto = require('crypto');
 
 const knex = require('knex')({
     client: 'sqlite3',
@@ -17,6 +18,10 @@ const db = new sqlite3.Database('db/main.db', (err) => {
         console.error(err.message);
     };
 });
+
+const encryptString = (str) => {
+    return crypto.createHash('sha256').update(str).digest('base64');
+};
 
 const createSession = () => {
     let session = '';
@@ -66,7 +71,7 @@ const checkLogin = ({ id, password }) => {
 app.post('/login', (req, res) => {
     const userInfo = {
         id: parseInt(req.body.id),
-        password: req.body.password
+        password: encryptString(req.body.password)
     };
 
     if (!utils.checkRequiredProperties(['id', 'password'], userInfo)) {
