@@ -5,12 +5,17 @@ const nodemailer = require('nodemailer');
 const dayjs = require('dayjs');
 const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
+const crypto = require('crypto');
 
 const db = new sqlite3.Database('db/main.db', (err) => {
     if (err) {
         console.error(err.message);
     };
 });
+
+const encryptString = (str) => {
+    return crypto.createHash('sha256').update(str).digest('base64');
+};
 
 const generateAccount = (accountInfo) => {
     return new Promise((resolve, reject) => {
@@ -45,7 +50,7 @@ const generatePW = () => {
 }
 
 const verifyEmail = (email) => {
-    const regularEmail = /^([0-9a-zA-Z_\.-]+)@([0-9a-zA-Z_-]+)(\.[0-9a-zA-Z_-]+){1,2}$/;
+    const regularEmail = /^([0-9a-zA-Z_.-]+)@([0-9a-zA-Z_-]+)(\.[0-9a-zA-Z_-]+){1,2}$/;
     return regularEmail.test(email);
 };
 
@@ -187,7 +192,7 @@ const updateUserPassword = (userId, newPassword, password = null) => {
                     reject(ERROR_CODE[500]);
                 }
                 if (!this.changes) {
-                    reject(ERROR_CODE[400]);
+                    reject({ code: 400, message: '비밀번호가 틀렸습니다.' });
                 }
                 resolve(true);
             });
@@ -303,7 +308,7 @@ app.post('/student', (req, res) => {
 
     insertStudent(body)
         .then(rowid => {
-            return generateAccount({ id: rowid, password: body.birthday.split('/').join('') });
+            return generateAccount({ id: rowid, password: encryptString(body.birthday.split('/').join('')) });
         })
         .then(ignore => {
             res.status(200).json({ insert: true });
@@ -322,7 +327,7 @@ app.post('/professor', (req, res) => {
 
     insertProfessor(body)
         .then(rowid => {
-            return generateAccount({ id: rowid, password: body.birthday.split('/').join('') });
+            return generateAccount({ id: rowid, password: encryptString(body.birthday.split('/').join('')) });
         })
         .then(ignore => {
             res.status(200).json({ insert: true });
@@ -378,7 +383,7 @@ app.patch('/password', (req, res) => {
 
     getId(session)
         .then(user => {
-            return updateUserPassword(user.id, body.newPassword, body.password);
+            return updateUserPassword(user.id, encryptString(body.newPassword), encryptString(body.password));
         })
         .then(success => {
             res.status(200).json({ isChanged: success });
@@ -402,7 +407,7 @@ app.post('/temp-password', (req, res) => {
 
     checkUser(checkId(id), id, birthday)
         .then(ignore => {
-            return updateUserPassword(id, tempPassword)
+            return updateUserPassword(id, encryptString(tempPassword))
         })
         .then(ignore => {
             return sendMail(email, tempPassword);
