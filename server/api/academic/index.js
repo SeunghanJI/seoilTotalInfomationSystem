@@ -1,9 +1,7 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
-const crypto = require('crypto');
 const dayjs = require('dayjs');
 
 const knex = require('knex')({
@@ -14,16 +12,10 @@ const knex = require('knex')({
     useNullAsDefault: true
 });
 
-const db = new sqlite3.Database('db/main.db', (err) => {
-    if (err) {
-        console.error(err.message);
-    };
-});
-
 const breakStatusMap = {
     0: '처리중',
     1: '승인'
-}
+};
 
 const formatStatusInfo = breakInfo => {
     return breakInfo.map(info => {
