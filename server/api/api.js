@@ -19,4 +19,8 @@ app.use('/schedule', apiSchedule);
 const apiBankAccount = require('./bankAccount/index');
 app.use('/bank-account', apiBankAccount);
 
+const apiAcademic = require('./academic/index');
+app.use('/academic', apiAcademic);
+
+
 module.exports = app;
