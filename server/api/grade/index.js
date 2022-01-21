@@ -76,10 +76,11 @@ const lectureTotalInfoMaping = (gradeList) => {
     }, {})
 };
 
-const formatGradeInfo = (gradeInfo, lectureTotalInfoMap) => {
+const formatGradeInfo = (gradeInfo, lectureTotalInfoMap, studentMajor) => {
     gradeInfo = gradeInfo.reduce((gradeInfo, lecture) => {
         lecture.rank = rankMaping(lecture.grade);
         lecture.precedence = `${lecture.precedence}/${lectureTotalInfoMap[lecture.lectureId].personnel}`
+        lecture.isMajor = (lecture.deptName === studentMajor.deptName) ? '전공' : '교양';
         gradeInfo.cumulative.credit += !!RANK_MAP[lecture.rank] ? lecture.credit : 0;
         gradeInfo.cumulative.gradeSum += !!RANK_MAP[lecture.rank] ? RANK_MAP[lecture.rank] * lecture.credit : 0;
         gradeInfo.lectureList.push(lecture);
@@ -129,14 +130,20 @@ app.get('/current', (req, res) => {
                     year,
                     term
                 })
-                .groupBy('lecture_id')]);
+                .groupBy('lecture_id'),
+            knex('student')
+                .select('dept.name as deptName')
+                .innerJoin('dept', 'dept.code', 'student.department')
+                .where({ id: user.id })
+                .first()
+            ]);
         })
-        .then(([gradeInfo, lectureTotalInfo]) => {
+        .then(([gradeInfo, lectureTotalInfo, studentMajor]) => {
             if (gradeInfo.length === 0) {
                 return res.status(200).json([]);
             }
             const lectureTotalInfoMap = lectureTotalInfoMaping(lectureTotalInfo);
-            res.status(200).json(formatGradeInfo(gradeInfo, lectureTotalInfoMap));
+            res.status(200).json(formatGradeInfo(gradeInfo, lectureTotalInfoMap, studentMajor));
         })
         .catch(failed => {
             if (isNaN(failed.code)) {
@@ -175,30 +182,53 @@ app.get('/list', (req, res) => {
                     .avg('grade as gradeAvg')
                     .leftOuterJoin('lecture', 'lecture.id', 'grade.lecture_id')
                     .whereIn('lecture_id', userLectureList)
-                    .groupBy('lecture_id')]);
+                    .groupBy('lecture_id'),
+                knex('student')
+                    .select('dept.name as deptName')
+                    .innerJoin('dept', 'dept.code', 'student.department')
+                    .where({ id: user.id })
+                    .first()
+            ]);
         })
-        .then(([gradeInfo, lectureTotalInfo]) => {
+        .then(([gradeInfo, lectureTotalInfo, studentMajor]) => {
             if (gradeInfo.length === 0) {
                 return res.status(200).json([]);
             }
 
             const lectureTotalInfoMap = lectureTotalInfoMaping(lectureTotalInfo);
-            const gradeInfoMap = gradeInfo.reduce((gradeInfoMap, lecture) => {
-                if (!gradeInfoMap[lecture.semester]) gradeInfoMap[lecture.semester] = [];
-                gradeInfoMap[lecture.semester].push(lecture);
-                return gradeInfoMap;
+            const semesterMap = gradeInfo.reduce((semesterMap, lecture) => {
+                if (!semesterMap[lecture.semester]) semesterMap[lecture.semester] = { credit: 0, gradeSum: 0, lectureList: [] };
+                const lectureInfo = {
+                    lectureId: lecture.lectureId,
+                    grade: lecture.grade,
+                    deptName: lecture.deptName,
+                    credit: lecture.credit,
+                    lectureName: lecture.lectureName,
+                    precedence: `${lecture.precedence}/${lectureTotalInfoMap[lecture.lectureId].personnel}`,
+                    rank: rankMaping(lecture.grade),
+                    isMajor: (lecture.deptName === studentMajor.deptName) ? '전공' : '교양'
+                }
+                semesterMap[lecture.semester].credit += !!RANK_MAP[lectureInfo.rank] ? lectureInfo.credit : 0;
+                semesterMap[lecture.semester].gradeSum += !!RANK_MAP[lectureInfo.rank] ? RANK_MAP[lectureInfo.rank] * lectureInfo.credit : 0;
+                semesterMap[lecture.semester].lectureList.push(lectureInfo);
+                return semesterMap;
             }, {});
 
-            gradeInfo = Object.keys(gradeInfoMap).reduce((gradeInfo, lecture) => {
-                gradeInfo.semester[lecture] = formatGradeInfo(gradeInfoMap[lecture], lectureTotalInfoMap);
-                gradeInfo.cumulative.credit += gradeInfo.semester[lecture].cumulative.credit;
-                gradeInfo.cumulative.gradeAvg += gradeInfo.semester[lecture].cumulative.gradeAvg;
-                gradeInfo.cumulative.percentage += gradeInfo.semester[lecture].cumulative.percentage;
+            gradeInfo = Object.keys(semesterMap).reduce((gradeInfo, term) => {
+                const semester = {
+                    term,
+                    gradeAvg: parseFloat((semesterMap[term].gradeSum / semesterMap[term].credit).toFixed(2)),
+                    lectureList: semesterMap[term].lectureList,
+                    percentage: parseFloat((((semesterMap[term].gradeSum / semesterMap[term].credit) * 10.11) + 54).toFixed(2))
+                }
+                gradeInfo.semester.push(semester);
+                gradeInfo.cumulative.credit += semesterMap[term].credit;
+                gradeInfo.cumulative.gradeAvg += semester.gradeAvg;
+                gradeInfo.cumulative.percentage += semester.percentage;
                 return gradeInfo;
-            }, { cumulative: { credit: 0, gradeAvg: 0, percentage: 0 }, semester: {} });
+            }, { cumulative: { credit: 0, gradeAvg: 0, percentage: 0 }, semester: [] });
             gradeInfo.cumulative.gradeAvg = parseFloat((gradeInfo.cumulative.gradeAvg / (Object.keys(gradeInfo.semester).length)).toFixed(2));
             gradeInfo.cumulative.percentage = parseFloat((gradeInfo.cumulative.percentage / (Object.keys(gradeInfo.semester).length)).toFixed(2));
-
             res.status(200).json(gradeInfo);
         })
         .catch(failed => {
