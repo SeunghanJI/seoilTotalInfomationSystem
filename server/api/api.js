@@ -22,5 +22,7 @@ app.use('/bank-account', apiBankAccount);
 const apiAcademic = require('./academic/index');
 app.use('/academic', apiAcademic);
 
+const apiGrade = require('./grade/index');
+app.use('/grade', apiGrade);
 
 module.exports = app;
