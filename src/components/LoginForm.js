@@ -49,7 +49,9 @@ const LoginForm = ({ loginCallBack }) => {
         loginCallBack(isLogin);
       })
       .catch((error) => {
-        console.log(error.message);
+        if (error.response) {
+          alert(error.response.data);
+        }
       });
   };
 
