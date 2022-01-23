@@ -4,6 +4,9 @@ import LoginForm from '../../components/LoginForm';
 
 import LecturLookup from './LecturLookup';
 import Evaluation from './Evaluation';
+import LeaveAbsence from './LeaveAbsence';
+import Return from './Return';
+import GradeLookup from './GradeLookup';
 
 import { useParams } from 'react-router';
 
@@ -59,10 +62,10 @@ const Information = ({ isLogin, loginCallBack }) => {
         <TabPane tab="학사 서비스" key="1">
           <Tabs activeKey={childKey} onChange={onChangeChild} tabPosition="top">
             <TabPane tab="입대휴학신청" key="leave">
-              입대휴학신청
+              <LeaveAbsence></LeaveAbsence>
             </TabPane>
             <TabPane tab="복학신청" key="return">
-              복학신청
+              <Return></Return>
             </TabPane>
             <TabPane tab="수강신청서출력" key="classes">
               수강신청서출력
@@ -74,7 +77,7 @@ const Information = ({ isLogin, loginCallBack }) => {
               <LecturLookup></LecturLookup>
             </TabPane>
             <TabPane tab="성적조회" key="gradeLookup">
-              성적조회
+              <GradeLookup></GradeLookup>
             </TabPane>
           </Tabs>
         </TabPane>
