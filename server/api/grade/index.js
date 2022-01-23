@@ -80,7 +80,7 @@ const formatGradeInfo = (gradeInfo, lectureTotalInfoMap, studentMajor) => {
     gradeInfo = gradeInfo.reduce((gradeInfo, lecture) => {
         lecture.rank = rankMaping(lecture.grade);
         lecture.precedence = `${lecture.precedence}/${lectureTotalInfoMap[lecture.lectureId].personnel}`
-        lecture.isMajor = (lecture.deptName === studentMajor.deptName) ? '전공' : '교양';
+        lecture.major = (lecture.deptName === studentMajor.deptName) ? '전공' : '교양';
         gradeInfo.cumulative.credit += !!RANK_MAP[lecture.rank] ? lecture.credit : 0;
         gradeInfo.cumulative.gradeSum += !!RANK_MAP[lecture.rank] ? RANK_MAP[lecture.rank] * lecture.credit : 0;
         gradeInfo.lectureList.push(lecture);
@@ -206,7 +206,7 @@ app.get('/list', (req, res) => {
                     lectureName: lecture.lectureName,
                     precedence: `${lecture.precedence}/${lectureTotalInfoMap[lecture.lectureId].personnel}`,
                     rank: rankMaping(lecture.grade),
-                    isMajor: (lecture.deptName === studentMajor.deptName) ? '전공' : '교양'
+                    major: (lecture.deptName === studentMajor.deptName) ? '전공' : '교양'
                 }
                 semesterMap[lecture.semester].credit += !!RANK_MAP[lectureInfo.rank] ? lectureInfo.credit : 0;
                 semesterMap[lecture.semester].gradeSum += !!RANK_MAP[lectureInfo.rank] ? RANK_MAP[lectureInfo.rank] * lectureInfo.credit : 0;
