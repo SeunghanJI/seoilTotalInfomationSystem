@@ -25,4 +25,7 @@ app.use('/academic', apiAcademic);
 const apiGrade = require('./grade/index');
 app.use('/grade', apiGrade);
 
+const apiClass = require('./class/index');
+app.use('/class', apiClass);
+
 module.exports = app;
