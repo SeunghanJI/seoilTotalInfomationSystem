@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
+const { MAJOR_MAP } = require('../../common');
 const dayjs = require('dayjs');
 
 const knex = require('knex')({
@@ -59,11 +60,12 @@ const formatClassTime = (start, end) => {
 };
 
 const formatClassList = classList => {
-    return classList.reduce((classList, { startTime, endTime, day, max, count, ...list }) => {
+    return classList.reduce((classList, { startTime, endTime, day, max, count, major, ...list }) => {
         if (count >= max) {
             list.isDisable = true;
         }
 
+        list.major = MAJOR_MAP[major];
         list.lectureDate = `${formatClassTime(startTime, endTime).join(',')} / ${day}`;
         list.personnel = `${count} / ${max}`;
 
@@ -80,6 +82,7 @@ const getClassList = async (condition) => {
             'professor.name as professorName',
             'lecture.id as lectureId',
             'lecture.credit',
+            'lecture.major',
             'lecture.start_time as startTime',
             'lecture.end_time as endTime',
             'lecture.day',
@@ -98,14 +101,15 @@ app.get('/registration', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
 
+
     if (!cookie || !session) {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
 
     // const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss'); //현재 날짜
-    const currentDate = '2021-03-04 08:00:01'; //테스트용
-    const classRegistrationStart = '2021-03-01 08:00:00'; //테스트용
-    const classRegistrationEnd = '2021-03-05 23:59:59'; //테스트용
+    const currentDate = '2021-09-04 08:00:01'; //테스트용
+    const classRegistrationStart = '2021-09-01 08:00:00'; //테스트용
+    const classRegistrationEnd = '2021-09-05 23:59:59'; //테스트용
 
     if (!dayjs(classRegistrationStart).isBefore(currentDate) || !!dayjs(classRegistrationEnd).isBefore(currentDate)) {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
@@ -113,7 +117,7 @@ app.get('/registration', (req, res) => {
 
     const query = req.query;
     const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
-    const term = dayjs(classRegistrationStart).format('M') < '7' ? '1' : '2'; //테스트용
+    const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
     getId(session)
         .then(({ id }) => {
@@ -163,6 +167,7 @@ app.get('/registration/list', (req, res) => {
                     'professor.name as professorName',
                     'lecture.id as lectureId',
                     'lecture.credit',
+                    'lecture.major',
                     'lecture.start_time as startTime',
                     'lecture.end_time as endTime',
                     'lecture.day',
@@ -202,9 +207,9 @@ app.post('/registration', (req, res) => {
     }
 
     // const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss'); //현재 날짜
-    const currentDate = '2021-03-04 08:00:01'; //테스트용
-    const classRegistrationStart = '2021-03-01 08:00:00'; //테스트용
-    const classRegistrationEnd = '2021-03-05 23:59:59'; //테스트용
+    const currentDate = '2021-09-04 08:00:01'; //테스트용
+    const classRegistrationStart = '2021-09-01 08:00:00'; //테스트용
+    const classRegistrationEnd = '2021-09-05 23:59:59'; //테스트용
 
     if (!dayjs(classRegistrationStart).isBefore(currentDate) || !!dayjs(classRegistrationEnd).isBefore(currentDate)) {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
@@ -212,7 +217,7 @@ app.post('/registration', (req, res) => {
 
     const lectureId = req.body.lectureId;
     const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
-    const term = dayjs(classRegistrationStart).format('M') < '7' ? '1' : '2'; //테스트용
+    const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
     getId(session)
         .then(({ id }) => {
