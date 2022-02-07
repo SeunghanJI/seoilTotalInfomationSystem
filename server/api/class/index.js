@@ -115,7 +115,7 @@ app.get('/registration', (req, res) => {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
-    const query = req.query;
+    const { deptName, professorName, lectureName } = req.query;
     const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
@@ -126,9 +126,9 @@ app.get('/registration', (req, res) => {
             }
 
             const condition = {
-                ...!!utils.checkRequiredProperties(['deptName'], query) && { 'dept.name': query.deptName },
-                ...!!utils.checkRequiredProperties(['professorName'], query) && { 'professor.name': query.professorName },
-                ...!!utils.checkRequiredProperties(['lectureName'], query) && { 'lecture.name': query.lectureName },
+                ...!!deptName && { 'dept.name': deptName },
+                ...!!professorName && { 'professor.name': professorName },
+                ...!!lectureName && { 'lecture.name': lectureName },
                 year,
                 term
             };
@@ -201,6 +201,11 @@ app.get('/registration/list', (req, res) => {
 app.post('/registration', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
+    const lectureId = req.body.lectureId;
+
+    if (!lectureId) {
+        return res.status(ERROR_CODE[400].code).json(ERROR_CODE[400].message);
+    }
 
     if (!cookie || !session) {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
@@ -215,7 +220,7 @@ app.post('/registration', (req, res) => {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
-    const lectureId = req.body.lectureId;
+
     const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
