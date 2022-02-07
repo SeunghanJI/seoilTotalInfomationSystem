@@ -98,7 +98,6 @@ app.get('/registration', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
 
-
     if (!cookie || !session) {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
@@ -114,7 +113,7 @@ app.get('/registration', (req, res) => {
 
     const query = req.query;
     const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
-    const term = dayjs(classRegistrationStart).format('M'); //테스트용
+    const term = dayjs(classRegistrationStart).format('M') < '7' ? '1' : '2'; //테스트용
 
     getId(session)
         .then(({ id }) => {
@@ -145,6 +144,55 @@ app.get('/registration', (req, res) => {
         });
 });
 
+app.get('/registration/list', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+
+    if (!cookie || !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
+    }
+
+    getId(session)
+        .then(({ id }) => {
+            if (!id) {
+                return Promise.reject(ERROR_CODE[401]);
+            }
+            return knex('class_registration')
+                .select('class_registration.lecture_id as lectureId',
+                    'dept.name as deptName',
+                    'professor.name as professorName',
+                    'lecture.id as lectureId',
+                    'lecture.credit',
+                    'lecture.start_time as startTime',
+                    'lecture.end_time as endTime',
+                    'lecture.day',
+                    'lecture.name as lectureName',
+                    'lecture.max_personnel as max'
+                )
+                .count('class_registration.lecture_id as count')
+                .innerJoin('lecture', 'lecture.id', 'class_registration.lecture_id')
+                .innerJoin('dept', 'lecture.dept_id', 'dept.code')
+                .innerJoin('professor', 'lecture.prof_id', 'professor.id')
+                .where({ student_id: id })
+                .groupBy('lecture.id');
+        })
+        .then(classRegistrationList => {
+            const totalCredit = classRegistrationList.reduce((acc, cur) => {
+                acc += cur.credit;
+                return acc;
+            }, 0);
+
+            res.status(200).json({ totalCredit, classRegistrationList: formatClassList(classRegistrationList) });
+        })
+        .catch(failed => {
+            if (isNaN(failed.code)) {
+                return res.status(500).json(ERROR_CODE[500].message);
+            }
+
+            res.status(failed.code).json(failed.message);
+        });
+});
+
 app.post('/registration', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
@@ -164,7 +212,7 @@ app.post('/registration', (req, res) => {
 
     const lectureId = req.body.lectureId;
     const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
-    const term = dayjs(classRegistrationStart).format('M'); //테스트용
+    const term = dayjs(classRegistrationStart).format('M') < '7' ? '1' : '2'; //테스트용
 
     getId(session)
         .then(({ id }) => {
@@ -198,18 +246,11 @@ app.post('/registration', (req, res) => {
                 return Promise.reject({ code: 400, message: '수강인원이 초과하였습니다.' });
             }
 
-            return Promise.all([
-                knex('class_registration')
-                    .insert({
-                        student_id: id,
-                        lecture_id: classInfo.id
-                    }),
-                knex('grade')
-                    .insert({
-                        student_id: id,
-                        lecture_id: classInfo.id
-                    })
-            ]);
+            return knex('class_registration')
+                .insert({
+                    student_id: id,
+                    lecture_id: classInfo.id
+                });
         })
         .then(ignore => {
             const condition = {
