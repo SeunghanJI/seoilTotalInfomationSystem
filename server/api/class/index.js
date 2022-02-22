@@ -20,34 +20,27 @@ const getId = session => {
         .first();
 };
 
-app.get('/list', (req, res) => {
-    const cookie = req.headers.cookie;
-    const session = utils.getSession(cookie);
-
-    if (!cookie || !session) {
-        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
-    }
-
-    getId(session)
-        .then(({ id }) => {
-            if (!id) {
-                return Promise.reject(ERROR_CODE[401]);
-            }
-
-            return knex('dept')
-                .select('name as deptName');
-        })
-        .then(deptList => {
-            res.status(200).json({ deptList });
-        })
-        .catch(failed => {
-            if (isNaN(failed.code)) {
-                return res.status(500).json(ERROR_CODE[500].message);
-            }
-
-            res.status(failed.code).json(failed.message);
-        });
-});
+const getClassRegistrationList = (id) => {
+    return knex('class_registration')
+        .select('class_registration.lecture_id as lectureId',
+            'dept.name as deptName',
+            'professor.name as professorName',
+            'lecture.id as lectureId',
+            'lecture.credit',
+            'lecture.major',
+            'lecture.start_time as startTime',
+            'lecture.end_time as endTime',
+            'lecture.day',
+            'lecture.name as lectureName',
+            'lecture.max_personnel as max'
+        )
+        .count('class_registration.lecture_id as count')
+        .innerJoin('lecture', 'lecture.id', 'class_registration.lecture_id')
+        .innerJoin('dept', 'lecture.dept_id', 'dept.code')
+        .innerJoin('professor', 'lecture.prof_id', 'professor.id')
+        .where({ student_id: id })
+        .groupBy('lecture.id');
+};
 
 const formatClassTime = (start, end) => {
     const result = [];
@@ -96,6 +89,35 @@ const getClassList = async (condition) => {
         .where(condition)
         .groupBy('lecture.id');
 };
+
+app.get('/list', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+
+    if (!cookie || !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
+    }
+
+    getId(session)
+        .then(({ id }) => {
+            if (!id) {
+                return Promise.reject(ERROR_CODE[401]);
+            }
+
+            return knex('dept')
+                .select('name as deptName');
+        })
+        .then(deptList => {
+            res.status(200).json({ deptList });
+        })
+        .catch(failed => {
+            if (isNaN(failed.code)) {
+                return res.status(500).json(ERROR_CODE[500].message);
+            }
+
+            res.status(failed.code).json(failed.message);
+        });
+});
 
 app.get('/registration', (req, res) => {
     const cookie = req.headers.cookie;
@@ -161,25 +183,7 @@ app.get('/registration/list', (req, res) => {
             if (!id) {
                 return Promise.reject(ERROR_CODE[401]);
             }
-            return knex('class_registration')
-                .select('class_registration.lecture_id as lectureId',
-                    'dept.name as deptName',
-                    'professor.name as professorName',
-                    'lecture.id as lectureId',
-                    'lecture.credit',
-                    'lecture.major',
-                    'lecture.start_time as startTime',
-                    'lecture.end_time as endTime',
-                    'lecture.day',
-                    'lecture.name as lectureName',
-                    'lecture.max_personnel as max'
-                )
-                .count('class_registration.lecture_id as count')
-                .innerJoin('lecture', 'lecture.id', 'class_registration.lecture_id')
-                .innerJoin('dept', 'lecture.dept_id', 'dept.code')
-                .innerJoin('professor', 'lecture.prof_id', 'professor.id')
-                .where({ student_id: id })
-                .groupBy('lecture.id');
+            return getClassRegistrationList(id);
         })
         .then(classRegistrationList => {
             const totalCredit = classRegistrationList.reduce((acc, cur) => {
@@ -272,6 +276,65 @@ app.post('/registration', (req, res) => {
         })
         .then(classList => {
             res.status(200).json({ classList: formatClassList(classList) });
+        })
+        .catch(failed => {
+            if (isNaN(failed.code)) {
+                return res.status(500).json(ERROR_CODE[500].message);
+            }
+
+            res.status(failed.code).json(failed.message);
+        });
+});
+
+app.delete('/registration/:lectureId', (req, res) => {
+    const cookie = req.headers.cookie;
+    const session = utils.getSession(cookie);
+    const lectureId = req.params.lectureId;
+
+    if (!lectureId && isNaN(lectureId)) {
+        return res.status(ERROR_CODE[400].code).json(ERROR_CODE[400].message);
+    }
+
+    if (!cookie || !session) {
+        return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
+    }
+
+    getId(session)
+        .then(({ id }) => {
+            if (!id) {
+                return Promise.reject(ERROR_CODE[401]);
+            }
+
+            return knex('class_registration')
+                .select('student_id as id')
+                .where({
+                    lecture_id: lectureId,
+                    student_id: id
+                })
+                .first();
+        })
+        .then(({ id }) => {
+            if (!id) {
+                return Promise.reject({ code: 409, message: '신청되지않은 강의입니다.' });
+            }
+
+            return Promise.all([id, knex('class_registration')
+                .where({
+                    lecture_id: lectureId,
+                    student_id: id
+                })
+                .delete()]);
+        })
+        .then(([id, ignore]) => {
+            return getClassRegistrationList(id)
+        })
+        .then(classRegistrationList => {
+            const totalCredit = classRegistrationList.reduce((acc, cur) => {
+                acc += cur.credit;
+                return acc;
+            }, 0);
+
+            res.status(200).json({ totalCredit, classRegistrationList: formatClassList(classRegistrationList) });
         })
         .catch(failed => {
             if (isNaN(failed.code)) {
