@@ -88,13 +88,14 @@ app.get('/list', (req, res) => {
                 return Promise.reject(ERROR_CODE[401]);
             }
 
-            const deptList = await knex('dept')
-                .select('name as deptName')
-
-            return deptList.map(dept => dept.deptName)
+            return knex('dept')
+                .select(
+                    'code as deptId',
+                    'name as deptName'
+                )
         })
         .then(deptList => {
-            res.status(200).json({ deptList });
+            res.status(200).json(deptList);
         })
         .catch(failed => {
             if (isNaN(failed.code)) {
@@ -121,7 +122,7 @@ app.get('/registration', (req, res) => {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
-    const { deptName, professorName, lectureName } = req.query;
+    const { deptId, professorName, lectureName } = req.query;
     const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
@@ -132,7 +133,7 @@ app.get('/registration', (req, res) => {
             }
 
             const condition = {
-                ...!!deptName && { 'dept.name': deptName },
+                ...!!deptId && { 'dept.code': deptId },
                 ...!!professorName && { 'professor.name': professorName },
                 ...!!lectureName && { 'lecture.name': lectureName },
                 year,
