@@ -216,6 +216,13 @@ const checkValidRegistration = (applicationList, classRegistrationList) => {
     return result;
 };
 
+const getTotalCredit = arr => {
+    return arr.reduce((acc, cur) => {
+        acc += cur.credit;
+        return acc;
+    }, 0);
+}
+
 app.post('/registration', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
@@ -252,7 +259,8 @@ app.post('/registration', (req, res) => {
                         'lecture.max_personnel as max',
                         'lecture.start_time as startTime',
                         'lecture.end_time as endTime',
-                        'lecture.day'
+                        'lecture.day',
+                        'lecture.credit'
                     )
                     .count('class_registration.lecture_id as count')
                     .leftOuterJoin('class_registration', 'lecture.id', 'class_registration.lecture_id')
@@ -264,7 +272,8 @@ app.post('/registration', (req, res) => {
                         'class_registration.lecture_id',
                         'lecture.start_time as startTime',
                         'lecture.end_time as endTime',
-                        'lecture.day'
+                        'lecture.day',
+                        'lecture.credit'
                     )
                     .innerJoin('lecture', 'class_registration.lecture_id', 'lecture.id')
                     .where({
@@ -273,7 +282,12 @@ app.post('/registration', (req, res) => {
             ]);
         })
         .then(([id, classInfo, classRegistrationInfo]) => {
+            const totalCredit = getTotalCredit(classRegistrationInfo);
             const validTestResult = checkValidRegistration(classInfo, classRegistrationInfo);
+
+            if (totalCredit + classInfo.credit > 21) {
+                return Promise.reject({ code: 400, message: '신청할 수 있는 학점을 초과하였습니다.' });
+            }
 
             if (Object.keys(validTestResult).length !== 0) {
                 return Promise.reject(validTestResult);
@@ -303,10 +317,7 @@ app.post('/registration', (req, res) => {
             return Promise.all([getClassList(condition), getClassList(condition2)])
         })
         .then(([classList, classRegistrationList]) => {
-            const totalCredit = classRegistrationList.reduce((acc, cur) => {
-                acc += cur.credit;
-                return acc;
-            }, 0);
+            const totalCredit = getTotalCredit(classRegistrationList);
 
             res.status(200).json({ totalCredit, classList: formatClassList(classList), classRegistrationList: formatClassList(classRegistrationList) });
         })
@@ -375,10 +386,7 @@ app.delete('/registration/:lectureId', (req, res) => {
             return Promise.all([getClassList(condition), getClassList(condition2)])
         })
         .then(([classList, classRegistrationList]) => {
-            const totalCredit = classRegistrationList.reduce((acc, cur) => {
-                acc += cur.credit;
-                return acc;
-            }, 0);
+            const totalCredit = getTotalCredit(classRegistrationList);
 
             res.status(200).json({ totalCredit, classList: formatClassList(classList), classRegistrationList: formatClassList(classRegistrationList) });
         })
