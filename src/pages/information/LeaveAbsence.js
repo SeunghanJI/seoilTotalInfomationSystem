@@ -44,9 +44,7 @@ const LeaveAbsence = () => {
 
     switch (name) {
       case 'isMilitaryService':
-        {
-          value ? (clone[name] = value) : delete clone[name];
-        }
+        value ? (clone[name] = value) : delete clone[name];
         break;
       default:
         clone[name] = value;

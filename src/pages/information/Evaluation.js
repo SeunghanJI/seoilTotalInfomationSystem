@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Form, Input, Button, Modal } from 'antd';
+import { Input, Button, Modal } from 'antd';
 import EvaluationCard from '../../components/EvaluationCard';
 
 import axios from 'axios';
@@ -90,7 +90,7 @@ const Evaluation = () => {
       const props = { ...item, handleClick: setSelectedLectureId };
       return <EvaluationCard key={item.lectureId} {...props}></EvaluationCard>;
     });
-  }, [evaluationList, selectedLectureId, questions, answers]);
+  }, [evaluationList]);
 
   return (
     <div>

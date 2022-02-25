@@ -14,6 +14,8 @@ const Nav = () => {
       return '학사정보';
     } else if (pathname.includes('profile')) {
       return '내 정보 관리';
+    } else if (pathname.includes('class')) {
+      return '수강신청';
     } else {
       return '';
     }
@@ -128,13 +130,8 @@ const Nav = () => {
         >
           전자출결시스템
         </Menu.Item>
-        <Menu.Item
-          key="수강신청"
-          onClick={() => {
-            openNewWindow('수강신청');
-          }}
-        >
-          수강신청
+        <Menu.Item key="수강신청">
+          <Link to="/class">수강신청</Link>
         </Menu.Item>
         <Menu.Item
           key="내 정보 관리"
