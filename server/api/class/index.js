@@ -245,6 +245,7 @@ app.post('/registration', (req, res) => {
 
     const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
+    const { deptId, professorName, lectureName } = req.body.queries;
 
     getId(session)
         .then(({ id }) => {
@@ -306,6 +307,9 @@ app.post('/registration', (req, res) => {
         })
         .then(([id, ignore]) => {
             const condition = {
+                ...!!deptId && { 'dept.code': deptId },
+                ...!!professorName && { 'professor.name': professorName },
+                ...!!lectureName && { 'lecture.name': lectureName },
                 year,
                 term
             };
@@ -314,7 +318,7 @@ app.post('/registration', (req, res) => {
                 student_id: id
             };
 
-            return Promise.all([getClassList(condition), getClassList(condition2)])
+            return Promise.all([getClassList(condition), getClassList(condition2)]);
         })
         .then(([classList, classRegistrationList]) => {
             const totalCredit = getTotalCredit(classRegistrationList);
@@ -346,6 +350,7 @@ app.delete('/registration/:lectureId', (req, res) => {
     const currentDate = '2021-09-04 08:00:01'; //테스트용
     const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
+    const { deptId, professorName, lectureName } = req.body.queries;
 
     getId(session)
         .then(({ id }) => {
@@ -375,6 +380,9 @@ app.delete('/registration/:lectureId', (req, res) => {
         })
         .then(([id, ignore]) => {
             const condition = {
+                ...!!deptId && { 'dept.code': deptId },
+                ...!!professorName && { 'professor.name': professorName },
+                ...!!lectureName && { 'lecture.name': lectureName },
                 year,
                 term
             };
@@ -383,7 +391,7 @@ app.delete('/registration/:lectureId', (req, res) => {
                 student_id: id
             };
 
-            return Promise.all([getClassList(condition), getClassList(condition2)])
+            return Promise.all([getClassList(condition), getClassList(condition2)]);
         })
         .then(([classList, classRegistrationList]) => {
             const totalCredit = getTotalCredit(classRegistrationList);
