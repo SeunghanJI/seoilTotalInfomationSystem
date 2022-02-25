@@ -4,6 +4,8 @@ const utils = require('../../utils');
 const { ERROR_CODE } = require('../../errors');
 const { MAJOR_MAP } = require('../../common');
 const dayjs = require('dayjs');
+const CLASS_REGISTRATION_START = '2021-09-01 08:00:00'; //테스트용
+const CLASS_REGISTRATION_END = '2021-09-05 23:59:59'; //테스트용
 
 const knex = require('knex')({
     client: 'sqlite3',
@@ -18,28 +20,6 @@ const getId = session => {
         .select('id')
         .where({ session })
         .first();
-};
-
-const getClassRegistrationList = (id) => {
-    return knex('class_registration')
-        .select('class_registration.lecture_id as lectureId',
-            'dept.name as deptName',
-            'professor.name as professorName',
-            'lecture.id as lectureId',
-            'lecture.credit',
-            'lecture.major',
-            'lecture.start_time as startTime',
-            'lecture.end_time as endTime',
-            'lecture.day',
-            'lecture.name as lectureName',
-            'lecture.max_personnel as max'
-        )
-        .count('class_registration.lecture_id as count')
-        .innerJoin('lecture', 'lecture.id', 'class_registration.lecture_id')
-        .innerJoin('dept', 'lecture.dept_id', 'dept.code')
-        .innerJoin('professor', 'lecture.prof_id', 'professor.id')
-        .where({ student_id: id })
-        .groupBy('lecture.id');
 };
 
 const formatClassTime = (start, end) => {
@@ -90,6 +70,10 @@ const getClassList = async (condition) => {
         .groupBy('lecture.id');
 };
 
+const isValidDate = currentDate => {
+    return !dayjs(CLASS_REGISTRATION_START).isBefore(currentDate) || dayjs(CLASS_REGISTRATION_END).isBefore(currentDate);
+};
+
 app.get('/list', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
@@ -99,13 +83,15 @@ app.get('/list', (req, res) => {
     }
 
     getId(session)
-        .then(({ id }) => {
+        .then(async ({ id }) => {
             if (!id) {
                 return Promise.reject(ERROR_CODE[401]);
             }
 
-            return knex('dept')
-                .select('name as deptName');
+            const deptList = await knex('dept')
+                .select('name as deptName')
+
+            return deptList.map(dept => dept.deptName)
         })
         .then(deptList => {
             res.status(200).json({ deptList });
@@ -130,15 +116,13 @@ app.get('/registration', (req, res) => {
 
     // const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss'); //현재 날짜
     const currentDate = '2021-09-04 08:00:01'; //테스트용
-    const classRegistrationStart = '2021-09-01 08:00:00'; //테스트용
-    const classRegistrationEnd = '2021-09-05 23:59:59'; //테스트용
 
-    if (!dayjs(classRegistrationStart).isBefore(currentDate) || !!dayjs(classRegistrationEnd).isBefore(currentDate)) {
+    if (isValidDate(currentDate)) {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
     const { deptName, professorName, lectureName } = req.query;
-    const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
+    const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
     getId(session)
@@ -183,7 +167,11 @@ app.get('/registration/list', (req, res) => {
             if (!id) {
                 return Promise.reject(ERROR_CODE[401]);
             }
-            return getClassRegistrationList(id);
+            const condition = {
+                student_id: id
+            };
+
+            return getClassList(condition);
         })
         .then(classRegistrationList => {
             const totalCredit = classRegistrationList.reduce((acc, cur) => {
@@ -202,6 +190,31 @@ app.get('/registration/list', (req, res) => {
         });
 });
 
+const checkValidRegistration = (applicationList, classRegistrationList) => {
+    const result = classRegistrationList.reduce((result, classRegistration) => {
+        if (classRegistration.day === applicationList.day) {
+            const applicationListClassTime = formatClassTime(applicationList.startTime, applicationList.endTime);
+            const classRegistrationListClassTime = formatClassTime(classRegistration.startTime, classRegistration.endTime);
+
+            result = applicationListClassTime.reduce((result, classTime, i) => {
+                if (classRegistrationListClassTime[i] === classTime) {
+                    result = { code: 400, message: '현재 신청중인 목록과 시간이 겹칩니다.' };
+                }
+
+                return result;
+            }, {})
+        }
+
+        if (classRegistration.lecture_id === applicationList.id) {
+            result = { code: 400, message: '현재 신청중인 목록입니다.' };
+        }
+
+        return result;
+    }, {})
+
+    return result;
+};
+
 app.post('/registration', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
@@ -217,15 +230,13 @@ app.post('/registration', (req, res) => {
 
     // const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss'); //현재 날짜
     const currentDate = '2021-09-04 08:00:01'; //테스트용
-    const classRegistrationStart = '2021-09-01 08:00:00'; //테스트용
-    const classRegistrationEnd = '2021-09-05 23:59:59'; //테스트용
 
-    if (!dayjs(classRegistrationStart).isBefore(currentDate) || !!dayjs(classRegistrationEnd).isBefore(currentDate)) {
+    if (isValidDate(currentDate)) {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
 
-    const year = dayjs(classRegistrationStart).format('YYYY'); //테스트용
+    const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
     getId(session)
@@ -236,46 +247,68 @@ app.post('/registration', (req, res) => {
 
             return Promise.all([id,
                 knex('lecture')
-                    .select('lecture.id', 'lecture.max_personnel as max',)
+                    .select(
+                        'lecture.id',
+                        'lecture.max_personnel as max',
+                        'lecture.start_time as startTime',
+                        'lecture.end_time as endTime',
+                        'lecture.day'
+                    )
                     .count('class_registration.lecture_id as count')
                     .leftOuterJoin('class_registration', 'lecture.id', 'class_registration.lecture_id')
                     .where({ 'lecture.id': lectureId })
                     .groupBy('lecture.id')
                     .first(),
                 knex('class_registration')
-                    .select()
+                    .select(
+                        'class_registration.lecture_id',
+                        'lecture.start_time as startTime',
+                        'lecture.end_time as endTime',
+                        'lecture.day'
+                    )
+                    .innerJoin('lecture', 'class_registration.lecture_id', 'lecture.id')
                     .where({
-                        'student_id': id,
-                        'lecture_id': lectureId
+                        'class_registration.student_id': id
                     })
-                    .first()
             ]);
         })
         .then(([id, classInfo, classRegistrationInfo]) => {
-            if (!!classRegistrationInfo) {
-                return Promise.reject({ code: 400, message: '현재 신청중인 목록입니다.' });
+            const validTestResult = checkValidRegistration(classInfo, classRegistrationInfo);
+
+            if (Object.keys(validTestResult).length !== 0) {
+                return Promise.reject(validTestResult);
             }
 
             if (classInfo.count >= classInfo.max) {
                 return Promise.reject({ code: 400, message: '수강인원이 초과하였습니다.' });
             }
 
-            return knex('class_registration')
+            return Promise.all([id, knex('class_registration')
                 .insert({
                     student_id: id,
                     lecture_id: classInfo.id
-                });
+                })
+            ]);
         })
-        .then(ignore => {
+        .then(([id, ignore]) => {
             const condition = {
                 year,
                 term
             };
 
-            return getClassList(condition);
+            const condition2 = {
+                student_id: id
+            };
+
+            return Promise.all([getClassList(condition), getClassList(condition2)])
         })
-        .then(classList => {
-            res.status(200).json({ classList: formatClassList(classList) });
+        .then(([classList, classRegistrationList]) => {
+            const totalCredit = classRegistrationList.reduce((acc, cur) => {
+                acc += cur.credit;
+                return acc;
+            }, 0);
+
+            res.status(200).json({ totalCredit, classList: formatClassList(classList), classRegistrationList: formatClassList(classRegistrationList) });
         })
         .catch(failed => {
             if (isNaN(failed.code)) {
@@ -326,7 +359,11 @@ app.delete('/registration/:lectureId', (req, res) => {
                 .delete()]);
         })
         .then(([id, ignore]) => {
-            return getClassRegistrationList(id)
+            const condition = {
+                student_id: id
+            };
+
+            return getClassList(condition);
         })
         .then(classRegistrationList => {
             const totalCredit = classRegistrationList.reduce((acc, cur) => {
