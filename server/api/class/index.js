@@ -235,7 +235,6 @@ app.post('/registration', (req, res) => {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
-
     const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
     const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
@@ -332,6 +331,10 @@ app.delete('/registration/:lectureId', (req, res) => {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
 
+    const currentDate = '2021-09-04 08:00:01'; //테스트용
+    const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
+    const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
+
     getId(session)
         .then(({ id }) => {
             if (!id) {
@@ -360,18 +363,23 @@ app.delete('/registration/:lectureId', (req, res) => {
         })
         .then(([id, ignore]) => {
             const condition = {
+                year,
+                term
+            };
+
+            const condition2 = {
                 student_id: id
             };
 
-            return getClassList(condition);
+            return Promise.all([getClassList(condition), getClassList(condition2)])
         })
-        .then(classRegistrationList => {
+        .then(([classList, classRegistrationList]) => {
             const totalCredit = classRegistrationList.reduce((acc, cur) => {
                 acc += cur.credit;
                 return acc;
             }, 0);
 
-            res.status(200).json({ totalCredit, classRegistrationList: formatClassList(classRegistrationList) });
+            res.status(200).json({ totalCredit, classList: formatClassList(classList), classRegistrationList: formatClassList(classRegistrationList) });
         })
         .catch(failed => {
             if (isNaN(failed.code)) {
