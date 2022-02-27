@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Select, Button, Input } from 'antd';
 import ListTable from '../components/class/ListTable';
 import LoginForm from '../components/LoginForm';
@@ -13,7 +13,8 @@ const { Option } = Select;
 
 const ClassRegistration = ({ isLogin, loginCallBack }) => {
   const [dropdownData, setDropdownData] = useState(null);
-  const [queries, setQueries] = useState({});
+  const [query, setQuery] = useState({});
+  const [lastQuery, setLastQuery] = useState({});
 
   const [availableApplication, setAvailableApplication] = useState([]);
   const [containList, setContainList] = useState([]);
@@ -38,8 +39,8 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
   }, []);
 
   const onChange = (name, value) => {
-    setQueries({
-      ...queries,
+    setQuery({
+      ...query,
       [name]: value,
     });
   };
@@ -47,7 +48,7 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
   const onSubmit = (e) => {
     e.preventDefault();
 
-    const clone = Object.entries({ ...queries }).reduce((acc, [k, v]) => {
+    const clone = Object.entries({ ...query }).reduce((acc, [k, v]) => {
       if (!!v) {
         acc[k] = v;
       }
@@ -63,33 +64,48 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
 
     axios.get(url).then(({ data: { classList } }) => {
       setAvailableApplication(classList);
+      const cloneQuery = { ...query };
+      setLastQuery(cloneQuery);
     });
   };
 
-  const addClass = ({ lectureId }) => {
-    axios
-      .post('api/class/registration', { lectureId, queries })
-      .then(({ data: { classList, classRegistrationList, totalCredit } }) => {
-        setAvailableApplication(classList);
-        setContainList(classRegistrationList);
-        setCurrentCreditTotal(totalCredit);
-      })
-      .catch((error) => {
-        if (error.response) {
-          alert(error.response.data);
-        }
-      });
-  };
+  const addClass = useCallback(
+    ({ lectureId }) => {
+      axios
+        .post('api/class/registration', {
+          lectureId,
+          ...(JSON.stringify(lastQuery) !== '{}' && { queries: lastQuery }),
+        })
+        .then(({ data: { classList, classRegistrationList, totalCredit } }) => {
+          setAvailableApplication(classList);
+          setContainList(classRegistrationList);
+          setCurrentCreditTotal(totalCredit);
+        })
+        .catch((error) => {
+          if (error.response) {
+            alert(error.response.data);
+          }
+        });
+    },
+    [lastQuery]
+  );
 
-  const deleteClass = ({ lectureId }) => {
-    axios
-      .delete(`api/class/registration/${lectureId}`, { data: { queries } })
-      .then(({ data: { classList, classRegistrationList, totalCredit } }) => {
-        setContainList(classRegistrationList);
-        setCurrentCreditTotal(totalCredit);
-        setAvailableApplication(classList);
-      });
-  };
+  const deleteClass = useCallback(
+    ({ lectureId }) => {
+      axios
+        .delete(`api/class/registration/${lectureId}`, {
+          data: {
+            ...(JSON.stringify(lastQuery) !== '{}' && { queries: lastQuery }),
+          },
+        })
+        .then(({ data: { classList, classRegistrationList, totalCredit } }) => {
+          setContainList(classRegistrationList);
+          setCurrentCreditTotal(totalCredit);
+          setAvailableApplication(classList);
+        });
+    },
+    [lastQuery]
+  );
 
   const availableApplicationTable = useMemo(
     () =>
@@ -103,7 +119,7 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
       ) : (
         <p>검색된 강의가 없습니다.</p>
       ),
-    [availableApplication]
+    [availableApplication, addClass]
   );
 
   const containListTable = useMemo(
@@ -116,7 +132,7 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
       ) : (
         <p>신청한 강의가 없습니다.</p>
       ),
-    [containList]
+    [containList, deleteClass]
   );
 
   const drawLoginForm = () => {
@@ -140,7 +156,7 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
               {dropdownData && (
                 <Select
                   placeholder="학과"
-                  value={queries.deptId}
+                  value={query.deptId}
                   name="deptId"
                   style={{ width: '100%' }}
                   onChange={(value) => {
@@ -156,7 +172,7 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
               )}
               <Input
                 placeholder="교수명"
-                value={queries.professorName}
+                value={query.professorName}
                 name="professorName"
                 style={{ margin: '0px 8px' }}
                 onChange={(e) => {
@@ -166,7 +182,7 @@ const ClassRegistration = ({ isLogin, loginCallBack }) => {
               />
               <Input
                 placeholder="강의명"
-                value={queries.lectureName}
+                value={query.lectureName}
                 name="lectureName"
                 style={{ margin: '0px 8px' }}
                 onChange={(e) => {
