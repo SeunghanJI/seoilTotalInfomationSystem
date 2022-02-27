@@ -6,6 +6,9 @@ const { MAJOR_MAP } = require('../../common');
 const dayjs = require('dayjs');
 const CLASS_REGISTRATION_START = '2021-09-01 08:00:00'; //테스트용
 const CLASS_REGISTRATION_END = '2021-09-05 23:59:59'; //테스트용
+const CURRENT_DATE = '2021-09-04 08:00:01'; //테스트용
+const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
+const term = dayjs(CURRENT_DATE).format('M') < '7' ? '1' : '2'; //테스트용
 
 const knex = require('knex')({
     client: 'sqlite3',
@@ -92,7 +95,7 @@ app.get('/list', (req, res) => {
                 .select(
                     'code as deptId',
                     'name as deptName'
-                )
+                );
         })
         .then(deptList => {
             res.status(200).json(deptList);
@@ -116,15 +119,12 @@ app.get('/registration', (req, res) => {
     }
 
     // const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss'); //현재 날짜
-    const currentDate = '2021-09-04 08:00:01'; //테스트용
 
-    if (isValidDate(currentDate)) {
+    if (isValidDate(CURRENT_DATE)) {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
     const { deptId, professorName, lectureName } = req.query;
-    const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
-    const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
 
     getId(session)
         .then(({ id }) => {
@@ -155,6 +155,14 @@ app.get('/registration', (req, res) => {
         });
 });
 
+const getTotalCredit = arr => {
+    return arr.reduce((acc, cur) => {
+        acc += cur.credit;
+
+        return acc;
+    }, 0);
+}
+
 app.get('/registration/list', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
@@ -175,10 +183,7 @@ app.get('/registration/list', (req, res) => {
             return getClassList(condition);
         })
         .then(classRegistrationList => {
-            const totalCredit = classRegistrationList.reduce((acc, cur) => {
-                acc += cur.credit;
-                return acc;
-            }, 0);
+            const totalCredit = getTotalCredit(classRegistrationList);
 
             res.status(200).json({ totalCredit, classRegistrationList: formatClassList(classRegistrationList) });
         })
@@ -216,13 +221,6 @@ const checkValidRegistration = (applicationList, classRegistrationList) => {
     return result;
 };
 
-const getTotalCredit = arr => {
-    return arr.reduce((acc, cur) => {
-        acc += cur.credit;
-        return acc;
-    }, 0);
-}
-
 app.post('/registration', (req, res) => {
     const cookie = req.headers.cookie;
     const session = utils.getSession(cookie);
@@ -237,15 +235,12 @@ app.post('/registration', (req, res) => {
     }
 
     // const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss'); //현재 날짜
-    const currentDate = '2021-09-04 08:00:01'; //테스트용
 
-    if (isValidDate(currentDate)) {
+    if (isValidDate(CURRENT_DATE)) {
         return res.status(409).json('수강신청 날짜가 아닙니다.');
     }
 
-    const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
-    const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
-    const { deptId, professorName, lectureName } = req.body.queries;
+    const { deptId, professorName, lectureName } = req.body.queries || {};
 
     getId(session)
         .then(({ id }) => {
@@ -347,10 +342,7 @@ app.delete('/registration/:lectureId', (req, res) => {
         return res.status(ERROR_CODE[401].code).json(ERROR_CODE[401].message);
     }
 
-    const currentDate = '2021-09-04 08:00:01'; //테스트용
-    const year = dayjs(CLASS_REGISTRATION_START).format('YYYY'); //테스트용
-    const term = dayjs(currentDate).format('M') < '7' ? '1' : '2'; //테스트용
-    const { deptId, professorName, lectureName } = req.body.queries;
+    const { deptId, professorName, lectureName } = req.body.queries || {};
 
     getId(session)
         .then(({ id }) => {
