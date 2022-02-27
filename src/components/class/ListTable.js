@@ -33,8 +33,6 @@ const defaultColumns = [
 ];
 
 const ListTable = ({ dataSource, type, handleClick, style }) => {
-  console.log('type : ' + type);
-
   const colums = [...defaultColumns];
   colums.push({
     render: (row) => {
@@ -64,4 +62,4 @@ const ListTable = ({ dataSource, type, handleClick, style }) => {
   );
 };
 
-export default React.memo(ListTable);
+export default ListTable;
